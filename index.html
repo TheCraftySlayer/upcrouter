@@ -54,7 +54,60 @@
     .route-buttons { display: flex; flex-direction: column; gap: 8px; }
     .btn-google { background: #16a34a; color: white; width: 100%; padding: 14px; font-size: 1rem; }
     .btn-google:hover { background: #15803d; }
+    .btn-print { background: #6366f1; color: white; width: 100%; padding: 14px; font-size: 1rem; }
+    .btn-print:hover { background: #4f46e5; }
     .route-info { font-size: 0.8rem; color: #64748b; margin-bottom: 12px; padding: 8px; background: #f8fafc; border-radius: 6px; }
+    
+    /* Print Styles */
+    @media print {
+      body { background: white; padding: 0; }
+      .container { max-width: 100%; }
+      .card { box-shadow: none; border: none; page-break-inside: avoid; }
+      #upload-section, #success-banner, #input-section, #route-buttons, #map, .map-legend, 
+      #route-stats, #updating-indicator, #drag-hint, #route-note, #error-msg,
+      .drag-handle, h1, .btn-print, .btn-google, .card > h3 { display: none !important; }
+      .route-list { max-height: none; overflow: visible; }
+      .route-item { page-break-inside: avoid; padding: 10px 8px; border: 1px solid #ddd; margin-bottom: 4px; }
+      .route-item.start, .route-item.end { background: #f0f9f0; }
+      .route-item.draggable { cursor: default; background: #fff; }
+      .card { padding: 10px; }
+      .print-header { display: block !important; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #333; }
+      .print-header h2 { margin: 0 0 4px 0; font-size: 1.25rem; }
+      .print-header .print-date { font-size: 0.85rem; color: #666; }
+      .print-header .print-count { font-size: 0.9rem; color: #333; margin-top: 4px; }
+      .print-checkbox { display: inline-block !important; width: 16px; height: 16px; border: 2px solid #333; margin-right: 8px; flex-shrink: 0; }
+      .route-num { font-size: 0.7rem; }
+      .short-code { font-size: 0.75rem; }
+      .route-label { font-size: 0.8rem; }
+      .route-info { display: block; border: 1px solid #999; background: #f5f5f5; }
+    }
+    
+    .print-header { display: none; }
+    .print-checkbox { display: none; }
+    .print-notes { display: none; }
+    
+    @media print {
+      .print-notes { 
+        display: block !important; 
+        margin-top: 20px; 
+        padding-top: 16px; 
+        border-top: 1px solid #ccc; 
+      }
+      .print-notes-title { 
+        font-weight: 600; 
+        margin-bottom: 12px; 
+        font-size: 0.9rem; 
+      }
+      .print-notes-lines { 
+        height: 100px; 
+        background: repeating-linear-gradient(
+          transparent,
+          transparent 24px,
+          #ccc 24px,
+          #ccc 25px
+        );
+      }
+    }
     .drag-hint { font-size: 0.75rem; color: #64748b; margin-bottom: 8px; padding: 6px 10px; background: #fef3c7; border: 1px solid #fcd34d; border-radius: 6px; display: flex; align-items: center; gap: 6px; }
     .drag-hint .icon { font-size: 1rem; }
     .route-note { font-size: 0.75rem; color: #92400e; margin-bottom: 8px; padding: 6px 10px; background: #fef3c7; border: 1px solid #fcd34d; border-radius: 6px; display: none; }
@@ -94,7 +147,7 @@
       <button type="button" onclick="resetFile()">Change file</button>
     </div>
     
-    <div class="card">
+    <div id="input-section" class="card">
       <h3>Enter UPCs (PARIDs)</h3>
       <textarea id="upc-input" placeholder="100806539516140960&#10;100806539516640961&#10;100806539517040962" disabled></textarea>
       <p class="hint">Comma, space, or newline separated</p>
@@ -106,6 +159,11 @@
     </div>
     
     <div id="route-section" class="card" style="display: none;">
+      <div id="print-header" class="print-header">
+        <h2>🗺️ Property Driving Itinerary</h2>
+        <div class="print-date"></div>
+        <div class="print-count"></div>
+      </div>
       <h3>📍 Route Preview (<span id="stop-count">0</span> stops)</h3>
       <div class="map-legend">
         <div class="legend-item"><div class="legend-dot office"></div> Office</div>
@@ -128,6 +186,10 @@
       </div>
       <div id="route-list" class="route-list"></div>
       <div id="route-info" class="route-info" style="display: none;"></div>
+      <div id="print-notes" class="print-notes">
+        <div class="print-notes-title">Notes:</div>
+        <div class="print-notes-lines"></div>
+      </div>
       <div id="route-buttons" class="route-buttons"></div>
     </div>
   </div>
@@ -173,19 +235,13 @@
       }).addTo(map);
     }
 
-    async function fetchRouteSegment(coords, retries) {
-      retries = retries || 3;
-      var coordString = coords.map(function(c) { return c[1] + ',' + c[0]; }).join(';');
+    async function fetchRouteBetweenTwo(coord1, coord2) {
+      var coordString = coord1[1] + ',' + coord1[0] + ';' + coord2[1] + ',' + coord2[0];
       var url = 'https://router.project-osrm.org/route/v1/driving/' + coordString + '?overview=full&geometries=geojson';
       
-      for (var attempt = 0; attempt < retries; attempt++) {
+      for (var attempt = 0; attempt < 2; attempt++) {
         try {
-          var controller = new AbortController();
-          var timeoutId = setTimeout(function() { controller.abort(); }, 10000);
-          
-          var response = await fetch(url, { signal: controller.signal });
-          clearTimeout(timeoutId);
-          
+          var response = await fetch(url);
           var data = await response.json();
           if (data.code === 'Ok' && data.routes && data.routes[0]) {
             return {
@@ -195,9 +251,8 @@
             };
           }
         } catch (e) {
-          // Wait before retry (exponential backoff)
-          if (attempt < retries - 1) {
-            await new Promise(function(resolve) { setTimeout(resolve, 1000 * (attempt + 1)); });
+          if (attempt < 1) {
+            await new Promise(function(resolve) { setTimeout(resolve, 500); });
           }
         }
       }
@@ -205,26 +260,18 @@
     }
 
     async function fetchDrivingRoute(coords) {
-      // For routes with many points, split into segments for better reliability
-      var maxPointsPerSegment = 12;
-      
-      if (coords.length <= maxPointsPerSegment) {
-        return await fetchRouteSegment(coords);
-      }
-      
-      // Split into overlapping segments and combine
       var allGeometry = [];
       var totalDistance = 0;
       var totalDuration = 0;
       
-      for (var i = 0; i < coords.length - 1; i += maxPointsPerSegment - 1) {
-        var segmentCoords = coords.slice(i, Math.min(i + maxPointsPerSegment, coords.length));
-        if (segmentCoords.length < 2) break;
+      // Fetch route between each consecutive pair of points
+      for (var i = 0; i < coords.length - 1; i++) {
+        var segmentData = await fetchRouteBetweenTwo(coords[i], coords[i + 1]);
+        if (!segmentData) {
+          return null; // If any segment fails, fall back to straight lines
+        }
         
-        var segmentData = await fetchRouteSegment(segmentCoords);
-        if (!segmentData) return null; // If any segment fails, fall back
-        
-        // Skip first point of subsequent segments to avoid duplicates
+        // Add geometry (skip first point on subsequent segments to avoid duplicates)
         var geomToAdd = (i === 0) ? segmentData.geometry : segmentData.geometry.slice(1);
         allGeometry = allGeometry.concat(geomToAdd);
         totalDistance += segmentData.distance;
@@ -413,6 +460,7 @@
         var itemClass = 'route-item', numClass = 'route-num', labelClass = 'route-label', label, num, shortCodeHtml = '';
         var draggable = false;
         var dragHandle = '';
+        var checkbox = '';
         
         if (loc.type === 'start') { 
           itemClass += ' start'; 
@@ -432,11 +480,12 @@
           draggable = true;
           itemClass += ' draggable';
           dragHandle = '<span class="drag-handle">☰</span>';
+          checkbox = '<span class="print-checkbox"></span>';
         }
         
         html += '<div class="' + itemClass + '"' + 
                 (draggable ? ' draggable="true" data-index="' + i + '"' : '') + 
-                '>' + dragHandle + 
+                '>' + dragHandle + checkbox +
                 '<span class="' + numClass + '">' + num + '</span>' +
                 '<span class="' + labelClass + '">' + label + '</span>' + 
                 shortCodeHtml + '</div>';
@@ -467,6 +516,9 @@
       var numRoutes = Math.ceil(locations.length / MAX_WAYPOINTS);
       var buttonsHtml = '', infoEl = document.getElementById('route-info');
       
+      // Always add print button first
+      buttonsHtml = '<button class="btn btn-print" type="button" onclick="printItinerary()">🖨️ Print Itinerary</button>';
+      
       if (numRoutes > 1) {
         infoEl.textContent = 'Route split into ' + numRoutes + ' segments (Google Maps limit: ' + MAX_WAYPOINTS + ' stops per route).';
         showEl('route-info');
@@ -480,9 +532,21 @@
         }
       } else {
         hideEl('route-info');
-        buttonsHtml = '<button class="btn btn-google" type="button" onclick="openGoogleMaps(0)">🗺️ Open in Google Maps</button>';
+        buttonsHtml += '<button class="btn btn-google" type="button" onclick="openGoogleMaps(0)">🗺️ Open in Google Maps</button>';
       }
       document.getElementById('route-buttons').innerHTML = buttonsHtml;
+    }
+
+    function printItinerary() {
+      // Update print header with current info
+      var now = new Date();
+      var dateStr = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      var timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+      
+      document.querySelector('#print-header .print-date').textContent = 'Generated: ' + dateStr + ' at ' + timeStr;
+      document.querySelector('#print-header .print-count').textContent = locations.length + ' properties to visit';
+      
+      window.print();
     }
 
     function openGoogleMaps(routeIndex) {
