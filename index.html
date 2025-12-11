@@ -65,7 +65,7 @@
       .card { box-shadow: none; border: none; page-break-inside: avoid; }
       #upload-section, #success-banner, #input-section, #route-buttons, #map, .map-legend, 
       #route-stats, #updating-indicator, #drag-hint, #route-note, #error-msg,
-      .drag-handle, h1, .btn-print, .btn-google, .card > h3 { display: none !important; }
+      .drag-handle, h1, .btn-print, .btn-google, .card > h3, #instructions-card { display: none !important; }
       .route-list { max-height: none; overflow: visible; }
       .route-item { page-break-inside: avoid; padding: 10px 8px; border: 1px solid #ddd; margin-bottom: 4px; }
       .route-item.start, .route-item.end { background: #f0f9f0; }
@@ -110,6 +110,12 @@
     }
     .drag-hint { font-size: 0.75rem; color: #64748b; margin-bottom: 8px; padding: 6px 10px; background: #fef3c7; border: 1px solid #fcd34d; border-radius: 6px; display: flex; align-items: center; gap: 6px; }
     .drag-hint .icon { font-size: 1rem; }
+    details summary { list-style: none; }
+    details summary::-webkit-details-marker { display: none; }
+    details summary::before { content: '▶'; margin-right: 8px; font-size: 0.7rem; transition: transform 0.2s; display: inline-block; }
+    details[open] summary::before { transform: rotate(90deg); }
+    details ul { list-style-type: disc; }
+    details li { margin-bottom: 4px; }
     .route-note { font-size: 0.75rem; color: #92400e; margin-bottom: 8px; padding: 6px 10px; background: #fef3c7; border: 1px solid #fcd34d; border-radius: 6px; display: none; }
     .route-note.show { display: block; }
     #map { height: 350px; border-radius: 8px; margin-bottom: 16px; border: 1px solid #e2e8f0; }
@@ -135,6 +141,44 @@
 <body>
   <div class="container">
     <h1><span class="icon">🗺️</span> Property Driving Directions</h1>
+    
+    <div class="card" id="instructions-card">
+      <details>
+        <summary style="cursor: pointer; font-weight: 600; color: #334155; display: flex; align-items: center; gap: 8px;">
+          <span>📋 How to Use This Tool</span>
+          <span style="font-size: 0.75rem; color: #64748b; font-weight: 400;">(click to expand)</span>
+        </summary>
+        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #e2e8f0;">
+          <div style="margin-bottom: 12px;">
+            <strong style="color: #1e40af;">Step 1: Upload Your Data File</strong>
+            <p style="margin: 4px 0; color: #475569; font-size: 0.875rem;">Upload an Excel file (.xlsx or .xls) containing property coordinates. The file should have these columns:</p>
+            <ul style="margin: 8px 0 8px 20px; color: #475569; font-size: 0.85rem;">
+              <li><code>PARID LAT LONG</code> or <code>PARID X Y</code> or <code>PARID</code> — The property ID</li>
+              <li><code>DRIVING DIRECTIONS LAT LONG</code> — Google Maps URL with lat/long in DMS format (preferred)</li>
+              <li><code>DRIVING DIRECTIONS</code> — Google Maps URL with decimal X/Y coordinates (fallback)</li>
+            </ul>
+            <p style="margin: 4px 0; color: #64748b; font-size: 0.8rem; font-style: italic;">💡 The tool will try to use Lat/Long coordinates first. If unavailable, it falls back to X/Y coordinates.</p>
+          </div>
+          <div style="margin-bottom: 12px;">
+            <strong style="color: #1e40af;">Step 2: Enter Property IDs (UPCs/PARIDs)</strong>
+            <p style="margin: 4px 0; color: #475569; font-size: 0.875rem;">Type or paste one or more property IDs into the text box. You can separate them with commas, spaces, or new lines.</p>
+          </div>
+          <div style="margin-bottom: 12px;">
+            <strong style="color: #1e40af;">Step 3: Build & Customize Your Route</strong>
+            <p style="margin: 4px 0; color: #475569; font-size: 0.875rem;">Click "Build Route" to generate your driving itinerary. You can:</p>
+            <ul style="margin: 8px 0 8px 20px; color: #475569; font-size: 0.85rem;">
+              <li>Drag and drop stops to reorder them</li>
+              <li>View the route on the map preview</li>
+              <li>Open turn-by-turn directions in Google Maps</li>
+              <li>Print a checklist for field work</li>
+            </ul>
+          </div>
+          <div style="background: #fef3c7; padding: 8px 12px; border-radius: 6px; border: 1px solid #fcd34d;">
+            <p style="margin: 0; color: #92400e; font-size: 0.8rem;">⚠️ <strong>Note:</strong> Routes with more than 9 stops will be split into multiple segments due to Google Maps limitations.</p>
+          </div>
+        </div>
+      </details>
+    </div>
     
     <div id="upload-section" class="card">
       <h2>Load Your Data</h2>
@@ -568,6 +612,33 @@
       window.open(url, '_blank');
     }
 
+    // Parse DMS format like "N35° 11' 15.19",W106° 30' 8.25"" to decimal
+    function parseDMS(dmsStr) {
+      if (!dmsStr) return null;
+      // Match pattern: N/S followed by degrees, minutes, seconds, then W/E followed by degrees, minutes, seconds
+      var pattern = /([NS])(\d+)[°]\s*(\d+)['']\s*([\d.]+)[""']*\s*,\s*([WE])(\d+)[°]\s*(\d+)['']\s*([\d.]+)/i;
+      var match = String(dmsStr).match(pattern);
+      if (!match) return null;
+      
+      var latDir = match[1].toUpperCase();
+      var latDeg = parseFloat(match[2]);
+      var latMin = parseFloat(match[3]);
+      var latSec = parseFloat(match[4]);
+      
+      var lngDir = match[5].toUpperCase();
+      var lngDeg = parseFloat(match[6]);
+      var lngMin = parseFloat(match[7]);
+      var lngSec = parseFloat(match[8]);
+      
+      var lat = latDeg + (latMin / 60) + (latSec / 3600);
+      var lng = lngDeg + (lngMin / 60) + (lngSec / 3600);
+      
+      if (latDir === 'S') lat = -lat;
+      if (lngDir === 'W') lng = -lng;
+      
+      return { lat: lat, lng: lng };
+    }
+
     window.onload = function() {
       document.getElementById('file-input').onchange = function(e) {
         var file = e.target.files[0];
@@ -581,10 +652,27 @@
             data = {};
             for (var i = 0; i < jsonData.length; i++) {
               var row = jsonData[i];
-              var parid = String(row['PARID'] || '').trim();
-              var url = row['DRIVING DIRECTIONS'] || '';
-              var match = String(url).match(/origin=([0-9.-]+),([0-9.-]+)/);
-              if (match && parid) data[parid] = { lat: parseFloat(match[1]), lng: parseFloat(match[2]), url: url };
+              // Try PARID from lat/long column first, then X Y column
+              var parid = String(row['PARID LAT LONG'] || row['PARID X Y'] || row['PARID'] || '').trim();
+              if (!parid) continue;
+              
+              // Try lat/long DMS format first
+              var latLongUrl = row['DRIVING DIRECTIONS LAT LONG'] || '';
+              var dmsMatch = String(latLongUrl).match(/origin=([NS][^,]+,[WE][^&\s]+)/i);
+              if (dmsMatch) {
+                var coords = parseDMS(dmsMatch[1]);
+                if (coords) {
+                  data[parid] = { lat: coords.lat, lng: coords.lng, url: latLongUrl };
+                  continue;
+                }
+              }
+              
+              // Fall back to X Y decimal format
+              var xyUrl = row['DRIVING DIRECTIONS'] || '';
+              var xyMatch = String(xyUrl).match(/origin=([0-9.-]+),([0-9.-]+)/);
+              if (xyMatch) {
+                data[parid] = { lat: parseFloat(xyMatch[1]), lng: parseFloat(xyMatch[2]), url: xyUrl };
+              }
             }
             document.getElementById('record-count').textContent = Object.keys(data).length.toLocaleString();
             hideEl('upload-section');
