@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Property Driving Directions</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%); min-height: 100vh; padding: 16px; }
+    .container { max-width: 600px; margin: 0 auto; }
+    h1 { font-size: 1.75rem; color: #1e293b; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+    h1 .icon { font-size: 2rem; }
+    .card { background: white; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1); padding: 20px; margin-bottom: 16px; border: 1px solid #e2e8f0; }
+    .card h2 { font-size: 1.1rem; color: #334155; margin-bottom: 8px; }
+    .card h3 { font-size: 1rem; color: #334155; margin-bottom: 12px; }
+    .card p { color: #64748b; font-size: 0.875rem; margin-bottom: 16px; }
+    code { background: #f1f5f9; padding: 2px 8px; border-radius: 4px; color: #2563eb; font-size: 0.875rem; }
+    input[type="file"] { display: block; width: 100%; font-size: 0.875rem; cursor: pointer; }
+    input[type="file"]::file-selector-button { margin-right: 16px; padding: 10px 20px; border-radius: 8px; border: none; font-weight: 600; background: #2563eb; color: white; cursor: pointer; transition: background 0.2s; }
+    input[type="file"]::file-selector-button:hover { background: #1d4ed8; }
+    .success-banner { background: #ecfdf5; border: 1px solid #6ee7b7; border-radius: 12px; padding: 12px 16px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; min-height: 48px; }
+    .success-banner .success-text { color: #047857; font-weight: 500; font-size: 0.95rem; }
+    .success-banner button { background: none; border: none; color: #059669; font-size: 0.875rem; cursor: pointer; font-weight: 500; padding: 4px 8px; white-space: nowrap; }
+    .success-banner button:hover { text-decoration: underline; }
+    textarea { width: 100%; height: 150px; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.875rem; font-family: 'Monaco', 'Consolas', monospace; resize: none; }
+    textarea:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59,130,246,0.2); }
+    textarea:disabled { background: #f1f5f9; }
+    .hint { font-size: 0.75rem; color: #94a3b8; margin: 4px 0 12px; }
+    .btn-row { display: flex; gap: 8px; }
+    .btn { padding: 12px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.2s; border: none; font-size: 0.95rem; }
+    .btn-primary { flex: 1; background: #2563eb; color: white; }
+    .btn-primary:hover { background: #1d4ed8; }
+    .btn-primary:disabled { background: #94a3b8; cursor: not-allowed; }
+    .btn-secondary { background: white; border: 1px solid #cbd5e1; color: #334155; }
+    .btn-secondary:hover { background: #f8fafc; }
+    .error { margin-top: 12px; padding: 8px 12px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; color: #dc2626; font-size: 0.875rem; }
+    .route-list { max-height: 200px; overflow-y: auto; margin-bottom: 16px; }
+    .route-item { display: flex; align-items: center; gap: 8px; padding: 8px; background: #f8fafc; border-radius: 8px; margin-bottom: 8px; border: 1px solid #f1f5f9; }
+    .route-item.start, .route-item.end { background: #ecfdf5; border-color: #6ee7b7; }
+    .route-num { width: 24px; height: 24px; background: #2563eb; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; flex-shrink: 0; }
+    .route-num.start, .route-num.end { background: #16a34a; }
+    .route-label { font-size: 0.75rem; color: #475569; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+    .route-label.mono { font-family: monospace; }
+    .short-code { font-size: 0.7rem; color: #2563eb; background: #eff6ff; padding: 2px 6px; border-radius: 4px; font-weight: 600; white-space: nowrap; }
+    .route-buttons { display: flex; flex-direction: column; gap: 8px; }
+    .btn-google { background: #16a34a; color: white; width: 100%; padding: 14px; font-size: 1rem; }
+    .btn-google:hover { background: #15803d; }
+    .route-info { font-size: 0.8rem; color: #64748b; margin-bottom: 12px; padding: 8px; background: #f8fafc; border-radius: 6px; }
+    #map { height: 350px; border-radius: 8px; margin-bottom: 16px; border: 1px solid #e2e8f0; }
+    .map-legend { display: flex; gap: 16px; margin-bottom: 12px; flex-wrap: wrap; }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.75rem; color: #64748b; }
+    .legend-dot { width: 12px; height: 12px; border-radius: 50%; }
+    .legend-dot.office { background: #16a34a; }
+    .legend-dot.property { background: #2563eb; }
+    .legend-line { width: 20px; height: 3px; background: #f97316; border-radius: 2px; }
+    .custom-marker { background: #2563eb; color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+    .custom-marker.office { background: #16a34a; width: 28px; height: 28px; font-size: 14px; }
+    .route-stats { display: flex; gap: 16px; margin-bottom: 12px; padding: 10px 12px; background: #eff6ff; border-radius: 8px; border: 1px solid #bfdbfe; }
+    .stat { display: flex; flex-direction: column; }
+    .stat-value { font-size: 1rem; font-weight: 700; color: #1e40af; }
+    .stat-label { font-size: 0.7rem; color: #3b82f6; }
+    .loading-route { text-align: center; padding: 12px; color: #64748b; font-size: 0.875rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1><span class="icon">🗺️</span> Property Driving Directions</h1>
+    
+    <div id="upload-section" class="card">
+      <h2>Load Your Data</h2>
+      <p>Upload the <code>driving.xlsx</code> file</p>
+      <input type="file" id="file-input" accept=".xlsx,.xls">
+    </div>
+    
+    <div id="success-banner" class="success-banner" style="display: none;">
+      <span class="success-text">✓ <span id="record-count">0</span> properties loaded</span>
+      <button type="button" onclick="resetFile()">Change file</button>
+    </div>
+    
+    <div class="card">
+      <h3>Enter UPCs (PARIDs)</h3>
+      <textarea id="upc-input" placeholder="100806539516140960&#10;100806539516640961&#10;100806539517040962" disabled></textarea>
+      <p class="hint">Comma, space, or newline separated</p>
+      <div class="btn-row">
+        <button id="search-btn" class="btn btn-primary" type="button" onclick="handleSearch()" disabled>🔍 Build Route</button>
+        <button class="btn btn-secondary" type="button" onclick="clearAll()">Clear</button>
+      </div>
+      <div id="error-msg" class="error" style="display: none;"></div>
+    </div>
+    
+    <div id="route-section" class="card" style="display: none;">
+      <h3>📍 Route Preview (<span id="stop-count">0</span> stops)</h3>
+      <div class="map-legend">
+        <div class="legend-item"><div class="legend-dot office"></div> Office</div>
+        <div class="legend-item"><div class="legend-dot property"></div> Property</div>
+        <div class="legend-item"><div class="legend-line"></div> Driving Route</div>
+      </div>
+      <div id="map"></div>
+      <div id="route-stats" class="route-stats" style="display: none;">
+        <div class="stat"><span id="total-distance" class="stat-value">--</span><span class="stat-label">Total Distance</span></div>
+        <div class="stat"><span id="total-time" class="stat-value">--</span><span class="stat-label">Est. Drive Time</span></div>
+      </div>
+      <div id="route-list" class="route-list"></div>
+      <div id="route-info" class="route-info" style="display: none;"></div>
+      <div id="route-buttons" class="route-buttons"></div>
+    </div>
+  </div>
+
+  <script>
+    var OFFICE_LAT = 35.08302237882336;
+    var OFFICE_LNG = -106.65286131510351;
+    var MAX_WAYPOINTS = 9;
+    var data = {}, locations = [], fullRoute = [], map = null, mapLayers = [];
+
+    var letterMap = {'066':'A','065':'B','064':'C','063':'D','062':'E','061':'F','060':'G','059':'H','058':'J','057':'K','056':'L','055':'M','054':'N','053':'P','052':'Q','051':'R','050':'S','049':'T','048':'U','047':'V','046':'W','045':'X','044':'Y','043':'Z'};
+    
+    function parseUPC(upc) {
+      var s = upc.replace(/\D/g, '');
+      if (s.length < 18) return { letter: 'Z', mapNum: 99, quad: 9, block: 99, parcel: 99, shortCode: '???' };
+      var letter = letterMap[s.substring(4, 7)] || '?';
+      var mapNum = parseInt(s.substring(1, 4), 10) || 0;
+      var quad = parseInt(s.substring(13, 14), 10) || 0;
+      var block = parseInt(s.substring(14, 16), 10) || 0;
+      var parcel = parseInt(s.substring(16, 18), 10) || 0;
+      return { letter: letter, mapNum: mapNum, quad: quad, block: block, parcel: parcel, shortCode: letter + mapNum + '-' + quad + (block < 10 ? '0' : '') + block + (parcel < 10 ? '0' : '') + parcel };
+    }
+
+    function showEl(id) { document.getElementById(id).style.display = ''; }
+    function hideEl(id) { document.getElementById(id).style.display = 'none'; }
+
+    function createMarkerIcon(text, isOffice) {
+      return L.divIcon({
+        className: 'custom-marker-wrapper',
+        html: '<div class="custom-marker' + (isOffice ? ' office' : '') + '">' + text + '</div>',
+        iconSize: [isOffice ? 28 : 24, isOffice ? 28 : 24],
+        iconAnchor: [isOffice ? 14 : 12, isOffice ? 14 : 12]
+      });
+    }
+
+    function initMap() {
+      if (map) return;
+      map = L.map('map').setView([OFFICE_LAT, OFFICE_LNG], 11);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap'
+      }).addTo(map);
+    }
+
+    async function fetchDrivingRoute(coords) {
+      // OSRM expects lng,lat format
+      var coordString = coords.map(function(c) { return c[1] + ',' + c[0]; }).join(';');
+      var url = 'https://router.project-osrm.org/route/v1/driving/' + coordString + '?overview=full&geometries=geojson';
+      
+      try {
+        var response = await fetch(url);
+        var data = await response.json();
+        if (data.code === 'Ok' && data.routes && data.routes[0]) {
+          return {
+            geometry: data.routes[0].geometry.coordinates.map(function(c) { return [c[1], c[0]]; }),
+            distance: data.routes[0].distance,
+            duration: data.routes[0].duration
+          };
+        }
+      } catch (e) {
+        console.error('OSRM error:', e);
+      }
+      return null;
+    }
+
+    function formatDistance(meters) {
+      var miles = meters / 1609.34;
+      return miles.toFixed(1) + ' mi';
+    }
+
+    function formatDuration(seconds) {
+      var hours = Math.floor(seconds / 3600);
+      var mins = Math.round((seconds % 3600) / 60);
+      if (hours > 0) return hours + 'h ' + mins + 'm';
+      return mins + ' min';
+    }
+
+    async function updateMap() {
+      if (!map) initMap();
+      mapLayers.forEach(function(layer) { map.removeLayer(layer); });
+      mapLayers = [];
+      if (fullRoute.length === 0) return;
+
+      var bounds = L.latLngBounds();
+      var routeCoords = [];
+
+      // Add markers
+      for (var i = 0; i < fullRoute.length; i++) {
+        var loc = fullRoute[i];
+        var latLng = [loc.lat, loc.lng];
+        bounds.extend(latLng);
+        routeCoords.push(latLng);
+
+        var marker, popupText;
+        if (loc.type === 'start') {
+          marker = L.marker(latLng, { icon: createMarkerIcon('🏢', true) });
+          popupText = '<b>Start:</b> Assessor Office';
+        } else if (loc.type === 'end') {
+          marker = L.marker(latLng, { icon: createMarkerIcon('🏁', true) });
+          popupText = '<b>End:</b> Assessor Office';
+        } else {
+          var parsed = parseUPC(loc.upc);
+          marker = L.marker(latLng, { icon: createMarkerIcon(i, false) });
+          popupText = '<b>Stop ' + i + '</b><br>' + parsed.shortCode + '<br><span style="font-size:10px;color:#666;">' + loc.upc + '</span>';
+        }
+        marker.bindPopup(popupText);
+        marker.addTo(map);
+        mapLayers.push(marker);
+      }
+
+      map.fitBounds(bounds, { padding: [30, 30] });
+
+      // Fetch actual driving route from OSRM
+      var routeData = await fetchDrivingRoute(routeCoords);
+      
+      if (routeData && routeData.geometry) {
+        var polyline = L.polyline(routeData.geometry, { 
+          color: '#f97316', 
+          weight: 4, 
+          opacity: 0.85
+        }).addTo(map);
+        mapLayers.push(polyline);
+        
+        // Show stats
+        document.getElementById('total-distance').textContent = formatDistance(routeData.distance);
+        document.getElementById('total-time').textContent = formatDuration(routeData.duration);
+        showEl('route-stats');
+      } else {
+        // Fallback to straight lines if OSRM fails
+        var polyline = L.polyline(routeCoords, { 
+          color: '#f97316', 
+          weight: 3, 
+          opacity: 0.8, 
+          dashArray: '8, 8' 
+        }).addTo(map);
+        mapLayers.push(polyline);
+        hideEl('route-stats');
+      }
+    }
+
+    window.onload = function() {
+      document.getElementById('file-input').onchange = function(e) {
+        var file = e.target.files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function(evt) {
+          try {
+            var wb = XLSX.read(evt.target.result, { type: 'binary' });
+            var ws = wb.Sheets[wb.SheetNames[0]];
+            var jsonData = XLSX.utils.sheet_to_json(ws);
+            data = {};
+            for (var i = 0; i < jsonData.length; i++) {
+              var row = jsonData[i];
+              var parid = String(row['PARID'] || '').trim();
+              var url = row['DRIVING DIRECTIONS'] || '';
+              var match = String(url).match(/origin=([0-9.-]+),([0-9.-]+)/);
+              if (match && parid) data[parid] = { lat: parseFloat(match[1]), lng: parseFloat(match[2]), url: url };
+            }
+            document.getElementById('record-count').textContent = Object.keys(data).length.toLocaleString();
+            hideEl('upload-section');
+            showEl('success-banner');
+            document.getElementById('upc-input').disabled = false;
+            document.getElementById('search-btn').disabled = false;
+            hideEl('error-msg');
+          } catch (err) { alert('Error reading file: ' + err.message); }
+        };
+        reader.readAsBinaryString(file);
+      };
+    };
+
+    function resetFile() {
+      data = {};
+      showEl('upload-section');
+      hideEl('success-banner');
+      document.getElementById('upc-input').disabled = true;
+      document.getElementById('search-btn').disabled = true;
+      document.getElementById('file-input').value = '';
+      clearAll();
+    }
+
+    async function handleSearch() {
+      var input = document.getElementById('upc-input').value;
+      var upcs = input.split(/[,\n\s]+/).filter(function(u) { return u.trim(); });
+      
+      if (upcs.length === 0) { showError('Enter at least one UPC'); return; }
+
+      var found = [], notFound = [];
+      for (var i = 0; i < upcs.length; i++) {
+        var upc = upcs[i].trim();
+        if (data[upc]) found.push({ upc: upc, lat: data[upc].lat, lng: data[upc].lng, url: data[upc].url, type: 'property' });
+        else notFound.push(upc);
+      }
+
+      if (notFound.length > 0) showError('Not found: ' + notFound.join(', '));
+      else hideEl('error-msg');
+
+      if (found.length > 0) {
+        found.sort(function(a, b) {
+          var pa = parseUPC(a.upc), pb = parseUPC(b.upc);
+          if (pa.letter !== pb.letter) return pa.letter.localeCompare(pb.letter);
+          if (pa.mapNum !== pb.mapNum) return pa.mapNum - pb.mapNum;
+          if (pa.quad !== pb.quad) return pa.quad - pb.quad;
+          if (pa.block !== pb.block) return pa.block - pb.block;
+          return pa.parcel - pb.parcel;
+        });
+        locations = found;
+        fullRoute = [{ label: 'Office (Start)', lat: OFFICE_LAT, lng: OFFICE_LNG, type: 'start' }];
+        for (var i = 0; i < found.length; i++) fullRoute.push(found[i]);
+        fullRoute.push({ label: 'Office (End)', lat: OFFICE_LAT, lng: OFFICE_LNG, type: 'end' });
+        
+        updateRouteList();
+        updateRouteButtons();
+        showEl('route-section');
+        setTimeout(async function() { 
+          initMap(); 
+          await updateMap(); 
+        }, 100);
+      }
+    }
+
+    function updateRouteList() {
+      var html = '';
+      for (var i = 0; i < fullRoute.length; i++) {
+        var loc = fullRoute[i];
+        var itemClass = 'route-item', numClass = 'route-num', labelClass = 'route-label', label, num, shortCodeHtml = '';
+        
+        if (loc.type === 'start') { itemClass += ' start'; numClass += ' start'; num = 'S'; label = '🏢 Office (Start)'; }
+        else if (loc.type === 'end') { itemClass += ' end'; numClass += ' end'; num = 'E'; label = '🏢 Office (End)'; }
+        else { num = i; label = loc.upc; labelClass += ' mono'; shortCodeHtml = '<span class="short-code">' + parseUPC(loc.upc).shortCode + '</span>'; }
+        
+        html += '<div class="' + itemClass + '"><span class="' + numClass + '">' + num + '</span><span class="' + labelClass + '">' + label + '</span>' + shortCodeHtml + '</div>';
+      }
+      document.getElementById('route-list').innerHTML = html;
+      document.getElementById('stop-count').textContent = fullRoute.length;
+    }
+
+    function updateRouteButtons() {
+      var numRoutes = Math.ceil(locations.length / MAX_WAYPOINTS);
+      var buttonsHtml = '', infoEl = document.getElementById('route-info');
+      
+      if (numRoutes > 1) {
+        infoEl.textContent = 'Route split into ' + numRoutes + ' segments (Google Maps limit: ' + MAX_WAYPOINTS + ' stops per route).';
+        showEl('route-info');
+        for (var r = 0; r < numRoutes; r++) {
+          var startIdx = r * MAX_WAYPOINTS, endIdx = Math.min(startIdx + MAX_WAYPOINTS, locations.length);
+          var labelParts = [];
+          if (r === 0) labelParts.push('Office');
+          labelParts.push('Stops ' + (startIdx + 1) + '-' + endIdx);
+          if (r === numRoutes - 1) labelParts.push('Office');
+          buttonsHtml += '<button class="btn btn-google" type="button" onclick="openGoogleMaps(' + r + ')">🗺️ Route ' + (r + 1) + ': ' + labelParts.join(' → ') + '</button>';
+        }
+      } else {
+        hideEl('route-info');
+        buttonsHtml = '<button class="btn btn-google" type="button" onclick="openGoogleMaps(0)">🗺️ Open in Google Maps</button>';
+      }
+      document.getElementById('route-buttons').innerHTML = buttonsHtml;
+    }
+
+    function openGoogleMaps(routeIndex) {
+      var numRoutes = Math.ceil(locations.length / MAX_WAYPOINTS);
+      var isFirst = (routeIndex === 0), isLast = (routeIndex === numRoutes - 1);
+      var startIdx = routeIndex * MAX_WAYPOINTS, endIdx = Math.min(startIdx + MAX_WAYPOINTS, locations.length);
+      var routeLocs = locations.slice(startIdx, endIdx);
+      
+      var url = 'https://www.google.com/maps/dir/?api=1';
+      url += '&origin=' + (isFirst ? OFFICE_LAT + ',' + OFFICE_LNG : routeLocs[0].lat + ',' + routeLocs[0].lng);
+      url += '&destination=' + (isLast ? OFFICE_LAT + ',' + OFFICE_LNG : routeLocs[routeLocs.length - 1].lat + ',' + routeLocs[routeLocs.length - 1].lng);
+      
+      var waypoints = [];
+      for (var i = (isFirst ? 0 : 1); i < (isLast ? routeLocs.length : routeLocs.length - 1); i++) {
+        waypoints.push(routeLocs[i].lat + ',' + routeLocs[i].lng);
+      }
+      if (waypoints.length > 0) url += '&waypoints=' + waypoints.join('|');
+      url += '&travelmode=driving';
+      window.open(url, '_blank');
+    }
+
+    function clearAll() {
+      locations = []; fullRoute = [];
+      document.getElementById('upc-input').value = '';
+      hideEl('route-section'); hideEl('error-msg'); hideEl('route-stats');
+      if (map) { mapLayers.forEach(function(l) { map.removeLayer(l); }); mapLayers = []; }
+    }
+
+    function showError(msg) { document.getElementById('error-msg').textContent = msg; showEl('error-msg'); }
+  </script>
+</body>
+</html>
