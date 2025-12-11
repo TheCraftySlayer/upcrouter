@@ -37,18 +37,28 @@
     .btn-secondary { background: white; border: 1px solid #cbd5e1; color: #334155; }
     .btn-secondary:hover { background: #f8fafc; }
     .error { margin-top: 12px; padding: 8px 12px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; color: #dc2626; font-size: 0.875rem; }
-    .route-list { max-height: 200px; overflow-y: auto; margin-bottom: 16px; }
-    .route-item { display: flex; align-items: center; gap: 8px; padding: 8px; background: #f8fafc; border-radius: 8px; margin-bottom: 8px; border: 1px solid #f1f5f9; }
+    .route-list { max-height: 300px; overflow-y: auto; margin-bottom: 16px; }
+    .route-item { display: flex; align-items: center; gap: 8px; padding: 8px; background: #f8fafc; border-radius: 8px; margin-bottom: 8px; border: 1px solid #f1f5f9; transition: all 0.2s ease; }
     .route-item.start, .route-item.end { background: #ecfdf5; border-color: #6ee7b7; }
+    .route-item.draggable { cursor: grab; }
+    .route-item.draggable:hover { background: #eff6ff; border-color: #93c5fd; }
+    .route-item.draggable:active { cursor: grabbing; }
+    .route-item.dragging { opacity: 0.5; background: #dbeafe; border: 2px dashed #3b82f6; }
+    .route-item.drag-over { border: 2px solid #3b82f6; background: #eff6ff; transform: scale(1.02); }
     .route-num { width: 24px; height: 24px; background: #2563eb; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; flex-shrink: 0; }
     .route-num.start, .route-num.end { background: #16a34a; }
     .route-label { font-size: 0.75rem; color: #475569; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
     .route-label.mono { font-family: monospace; }
     .short-code { font-size: 0.7rem; color: #2563eb; background: #eff6ff; padding: 2px 6px; border-radius: 4px; font-weight: 600; white-space: nowrap; }
+    .drag-handle { color: #94a3b8; font-size: 1rem; padding: 0 4px; flex-shrink: 0; }
     .route-buttons { display: flex; flex-direction: column; gap: 8px; }
     .btn-google { background: #16a34a; color: white; width: 100%; padding: 14px; font-size: 1rem; }
     .btn-google:hover { background: #15803d; }
     .route-info { font-size: 0.8rem; color: #64748b; margin-bottom: 12px; padding: 8px; background: #f8fafc; border-radius: 6px; }
+    .drag-hint { font-size: 0.75rem; color: #64748b; margin-bottom: 8px; padding: 6px 10px; background: #fef3c7; border: 1px solid #fcd34d; border-radius: 6px; display: flex; align-items: center; gap: 6px; }
+    .drag-hint .icon { font-size: 1rem; }
+    .route-note { font-size: 0.75rem; color: #92400e; margin-bottom: 8px; padding: 6px 10px; background: #fef3c7; border: 1px solid #fcd34d; border-radius: 6px; display: none; }
+    .route-note.show { display: block; }
     #map { height: 350px; border-radius: 8px; margin-bottom: 16px; border: 1px solid #e2e8f0; }
     .map-legend { display: flex; gap: 16px; margin-bottom: 12px; flex-wrap: wrap; }
     .legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.75rem; color: #64748b; }
@@ -63,6 +73,10 @@
     .stat-value { font-size: 1rem; font-weight: 700; color: #1e40af; }
     .stat-label { font-size: 0.7rem; color: #3b82f6; }
     .loading-route { text-align: center; padding: 12px; color: #64748b; font-size: 0.875rem; }
+    .updating-indicator { display: none; align-items: center; gap: 8px; padding: 8px 12px; background: #fef3c7; border: 1px solid #fcd34d; border-radius: 6px; margin-bottom: 12px; font-size: 0.8rem; color: #92400e; }
+    .updating-indicator.show { display: flex; }
+    .spinner { width: 16px; height: 16px; border: 2px solid #fcd34d; border-top-color: #f59e0b; border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
@@ -99,9 +113,18 @@
         <div class="legend-item"><div class="legend-line"></div> Driving Route</div>
       </div>
       <div id="map"></div>
+      <div id="route-note" class="route-note">⚠️ Road routing unavailable — showing straight lines. Google Maps will still provide turn-by-turn directions.</div>
       <div id="route-stats" class="route-stats" style="display: none;">
         <div class="stat"><span id="total-distance" class="stat-value">--</span><span class="stat-label">Total Distance</span></div>
         <div class="stat"><span id="total-time" class="stat-value">--</span><span class="stat-label">Est. Drive Time</span></div>
+      </div>
+      <div id="updating-indicator" class="updating-indicator">
+        <div class="spinner"></div>
+        <span>Fetching road route...</span>
+      </div>
+      <div id="drag-hint" class="drag-hint" style="display: none;">
+        <span class="icon">↕️</span>
+        <span>Drag stops to reorder • Map & directions update automatically</span>
       </div>
       <div id="route-list" class="route-list"></div>
       <div id="route-info" class="route-info" style="display: none;"></div>
@@ -114,6 +137,8 @@
     var OFFICE_LNG = -106.65286131510351;
     var MAX_WAYPOINTS = 9;
     var data = {}, locations = [], fullRoute = [], map = null, mapLayers = [];
+    var draggedItem = null;
+    var isUpdating = false;
 
     var letterMap = {'066':'A','065':'B','064':'C','063':'D','062':'E','061':'F','060':'G','059':'H','058':'J','057':'K','056':'L','055':'M','054':'N','053':'P','052':'Q','051':'R','050':'S','049':'T','048':'U','047':'V','046':'W','045':'X','044':'Y','043':'Z'};
     
@@ -148,25 +173,69 @@
       }).addTo(map);
     }
 
-    async function fetchDrivingRoute(coords) {
-      // OSRM expects lng,lat format
+    async function fetchRouteSegment(coords, retries) {
+      retries = retries || 3;
       var coordString = coords.map(function(c) { return c[1] + ',' + c[0]; }).join(';');
       var url = 'https://router.project-osrm.org/route/v1/driving/' + coordString + '?overview=full&geometries=geojson';
       
-      try {
-        var response = await fetch(url);
-        var data = await response.json();
-        if (data.code === 'Ok' && data.routes && data.routes[0]) {
-          return {
-            geometry: data.routes[0].geometry.coordinates.map(function(c) { return [c[1], c[0]]; }),
-            distance: data.routes[0].distance,
-            duration: data.routes[0].duration
-          };
+      for (var attempt = 0; attempt < retries; attempt++) {
+        try {
+          var controller = new AbortController();
+          var timeoutId = setTimeout(function() { controller.abort(); }, 10000);
+          
+          var response = await fetch(url, { signal: controller.signal });
+          clearTimeout(timeoutId);
+          
+          var data = await response.json();
+          if (data.code === 'Ok' && data.routes && data.routes[0]) {
+            return {
+              geometry: data.routes[0].geometry.coordinates.map(function(c) { return [c[1], c[0]]; }),
+              distance: data.routes[0].distance,
+              duration: data.routes[0].duration
+            };
+          }
+        } catch (e) {
+          // Wait before retry (exponential backoff)
+          if (attempt < retries - 1) {
+            await new Promise(function(resolve) { setTimeout(resolve, 1000 * (attempt + 1)); });
+          }
         }
-      } catch (e) {
-        console.error('OSRM error:', e);
       }
       return null;
+    }
+
+    async function fetchDrivingRoute(coords) {
+      // For routes with many points, split into segments for better reliability
+      var maxPointsPerSegment = 12;
+      
+      if (coords.length <= maxPointsPerSegment) {
+        return await fetchRouteSegment(coords);
+      }
+      
+      // Split into overlapping segments and combine
+      var allGeometry = [];
+      var totalDistance = 0;
+      var totalDuration = 0;
+      
+      for (var i = 0; i < coords.length - 1; i += maxPointsPerSegment - 1) {
+        var segmentCoords = coords.slice(i, Math.min(i + maxPointsPerSegment, coords.length));
+        if (segmentCoords.length < 2) break;
+        
+        var segmentData = await fetchRouteSegment(segmentCoords);
+        if (!segmentData) return null; // If any segment fails, fall back
+        
+        // Skip first point of subsequent segments to avoid duplicates
+        var geomToAdd = (i === 0) ? segmentData.geometry : segmentData.geometry.slice(1);
+        allGeometry = allGeometry.concat(geomToAdd);
+        totalDistance += segmentData.distance;
+        totalDuration += segmentData.duration;
+      }
+      
+      return {
+        geometry: allGeometry,
+        distance: totalDistance,
+        duration: totalDuration
+      };
     }
 
     function formatDistance(meters) {
@@ -231,6 +300,7 @@
         document.getElementById('total-distance').textContent = formatDistance(routeData.distance);
         document.getElementById('total-time').textContent = formatDuration(routeData.duration);
         showEl('route-stats');
+        document.getElementById('route-note').classList.remove('show');
       } else {
         // Fallback to straight lines if OSRM fails
         var polyline = L.polyline(routeCoords, { 
@@ -240,8 +310,198 @@
           dashArray: '8, 8' 
         }).addTo(map);
         mapLayers.push(polyline);
-        hideEl('route-stats');
+        
+        // Show estimated stats based on straight-line distance
+        var totalMeters = 0;
+        for (var j = 0; j < routeCoords.length - 1; j++) {
+          totalMeters += map.distance(routeCoords[j], routeCoords[j + 1]);
+        }
+        // Multiply by 1.4 to estimate actual road distance from straight-line
+        var estimatedDistance = totalMeters * 1.4;
+        // Estimate 30 mph average speed
+        var estimatedSeconds = (estimatedDistance / 1609.34) / 30 * 3600;
+        
+        document.getElementById('total-distance').textContent = '~' + formatDistance(estimatedDistance);
+        document.getElementById('total-time').textContent = '~' + formatDuration(estimatedSeconds);
+        showEl('route-stats');
+        document.getElementById('route-note').classList.add('show');
       }
+    }
+
+    // Drag and Drop Functions
+    function handleDragStart(e) {
+      draggedItem = this;
+      this.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', this.dataset.index);
+    }
+
+    function handleDragEnd(e) {
+      this.classList.remove('dragging');
+      document.querySelectorAll('.route-item').forEach(function(item) {
+        item.classList.remove('drag-over');
+      });
+      draggedItem = null;
+    }
+
+    function handleDragOver(e) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+    }
+
+    function handleDragEnter(e) {
+      e.preventDefault();
+      if (this !== draggedItem && this.classList.contains('draggable')) {
+        this.classList.add('drag-over');
+      }
+    }
+
+    function handleDragLeave(e) {
+      this.classList.remove('drag-over');
+    }
+
+    async function handleDrop(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      this.classList.remove('drag-over');
+      
+      if (!draggedItem || this === draggedItem || !this.classList.contains('draggable')) {
+        return;
+      }
+
+      var fromIndex = parseInt(draggedItem.dataset.index);
+      var toIndex = parseInt(this.dataset.index);
+
+      if (fromIndex === toIndex) return;
+
+      // Reorder the fullRoute array (property items only, indices 1 to length-2)
+      var movedItem = fullRoute.splice(fromIndex, 1)[0];
+      fullRoute.splice(toIndex, 0, movedItem);
+
+      // Rebuild locations array from fullRoute (excluding start/end)
+      locations = fullRoute.filter(function(loc) {
+        return loc.type !== 'start' && loc.type !== 'end';
+      });
+
+      // Update UI
+      updateRouteList();
+      updateRouteButtons();
+      
+      // Show updating indicator and update map
+      showUpdatingIndicator();
+      await updateMap();
+      hideUpdatingIndicator();
+    }
+
+    function showUpdatingIndicator() {
+      document.getElementById('updating-indicator').classList.add('show');
+      isUpdating = true;
+    }
+
+    function hideUpdatingIndicator() {
+      document.getElementById('updating-indicator').classList.remove('show');
+      isUpdating = false;
+    }
+
+    function updateRouteList() {
+      var html = '';
+      var hasPropertyStops = fullRoute.length > 2; // More than just start/end
+      
+      for (var i = 0; i < fullRoute.length; i++) {
+        var loc = fullRoute[i];
+        var itemClass = 'route-item', numClass = 'route-num', labelClass = 'route-label', label, num, shortCodeHtml = '';
+        var draggable = false;
+        var dragHandle = '';
+        
+        if (loc.type === 'start') { 
+          itemClass += ' start'; 
+          numClass += ' start'; 
+          num = 'S'; 
+          label = '🏢 Office (Start)'; 
+        } else if (loc.type === 'end') { 
+          itemClass += ' end'; 
+          numClass += ' end'; 
+          num = 'E'; 
+          label = '🏢 Office (End)'; 
+        } else { 
+          num = i; 
+          label = loc.upc; 
+          labelClass += ' mono'; 
+          shortCodeHtml = '<span class="short-code">' + parseUPC(loc.upc).shortCode + '</span>';
+          draggable = true;
+          itemClass += ' draggable';
+          dragHandle = '<span class="drag-handle">☰</span>';
+        }
+        
+        html += '<div class="' + itemClass + '"' + 
+                (draggable ? ' draggable="true" data-index="' + i + '"' : '') + 
+                '>' + dragHandle + 
+                '<span class="' + numClass + '">' + num + '</span>' +
+                '<span class="' + labelClass + '">' + label + '</span>' + 
+                shortCodeHtml + '</div>';
+      }
+      document.getElementById('route-list').innerHTML = html;
+      document.getElementById('stop-count').textContent = fullRoute.length;
+
+      // Show drag hint if there are multiple property stops
+      if (locations.length > 1) {
+        showEl('drag-hint');
+      } else {
+        hideEl('drag-hint');
+      }
+
+      // Add drag event listeners to draggable items
+      var draggableItems = document.querySelectorAll('.route-item.draggable');
+      draggableItems.forEach(function(item) {
+        item.addEventListener('dragstart', handleDragStart);
+        item.addEventListener('dragend', handleDragEnd);
+        item.addEventListener('dragover', handleDragOver);
+        item.addEventListener('dragenter', handleDragEnter);
+        item.addEventListener('dragleave', handleDragLeave);
+        item.addEventListener('drop', handleDrop);
+      });
+    }
+
+    function updateRouteButtons() {
+      var numRoutes = Math.ceil(locations.length / MAX_WAYPOINTS);
+      var buttonsHtml = '', infoEl = document.getElementById('route-info');
+      
+      if (numRoutes > 1) {
+        infoEl.textContent = 'Route split into ' + numRoutes + ' segments (Google Maps limit: ' + MAX_WAYPOINTS + ' stops per route).';
+        showEl('route-info');
+        for (var r = 0; r < numRoutes; r++) {
+          var startIdx = r * MAX_WAYPOINTS, endIdx = Math.min(startIdx + MAX_WAYPOINTS, locations.length);
+          var labelParts = [];
+          if (r === 0) labelParts.push('Office');
+          labelParts.push('Stops ' + (startIdx + 1) + '-' + endIdx);
+          if (r === numRoutes - 1) labelParts.push('Office');
+          buttonsHtml += '<button class="btn btn-google" type="button" onclick="openGoogleMaps(' + r + ')">🗺️ Route ' + (r + 1) + ': ' + labelParts.join(' → ') + '</button>';
+        }
+      } else {
+        hideEl('route-info');
+        buttonsHtml = '<button class="btn btn-google" type="button" onclick="openGoogleMaps(0)">🗺️ Open in Google Maps</button>';
+      }
+      document.getElementById('route-buttons').innerHTML = buttonsHtml;
+    }
+
+    function openGoogleMaps(routeIndex) {
+      var numRoutes = Math.ceil(locations.length / MAX_WAYPOINTS);
+      var isFirst = (routeIndex === 0), isLast = (routeIndex === numRoutes - 1);
+      var startIdx = routeIndex * MAX_WAYPOINTS, endIdx = Math.min(startIdx + MAX_WAYPOINTS, locations.length);
+      var routeLocs = locations.slice(startIdx, endIdx);
+      
+      var url = 'https://www.google.com/maps/dir/?api=1';
+      url += '&origin=' + (isFirst ? OFFICE_LAT + ',' + OFFICE_LNG : routeLocs[0].lat + ',' + routeLocs[0].lng);
+      url += '&destination=' + (isLast ? OFFICE_LAT + ',' + OFFICE_LNG : routeLocs[routeLocs.length - 1].lat + ',' + routeLocs[routeLocs.length - 1].lng);
+      
+      var waypoints = [];
+      for (var i = (isFirst ? 0 : 1); i < (isLast ? routeLocs.length : routeLocs.length - 1); i++) {
+        waypoints.push(routeLocs[i].lat + ',' + routeLocs[i].lng);
+      }
+      if (waypoints.length > 0) url += '&waypoints=' + waypoints.join('|');
+      url += '&travelmode=driving';
+      window.open(url, '_blank');
     }
 
     window.onload = function() {
@@ -324,67 +584,11 @@
       }
     }
 
-    function updateRouteList() {
-      var html = '';
-      for (var i = 0; i < fullRoute.length; i++) {
-        var loc = fullRoute[i];
-        var itemClass = 'route-item', numClass = 'route-num', labelClass = 'route-label', label, num, shortCodeHtml = '';
-        
-        if (loc.type === 'start') { itemClass += ' start'; numClass += ' start'; num = 'S'; label = '🏢 Office (Start)'; }
-        else if (loc.type === 'end') { itemClass += ' end'; numClass += ' end'; num = 'E'; label = '🏢 Office (End)'; }
-        else { num = i; label = loc.upc; labelClass += ' mono'; shortCodeHtml = '<span class="short-code">' + parseUPC(loc.upc).shortCode + '</span>'; }
-        
-        html += '<div class="' + itemClass + '"><span class="' + numClass + '">' + num + '</span><span class="' + labelClass + '">' + label + '</span>' + shortCodeHtml + '</div>';
-      }
-      document.getElementById('route-list').innerHTML = html;
-      document.getElementById('stop-count').textContent = fullRoute.length;
-    }
-
-    function updateRouteButtons() {
-      var numRoutes = Math.ceil(locations.length / MAX_WAYPOINTS);
-      var buttonsHtml = '', infoEl = document.getElementById('route-info');
-      
-      if (numRoutes > 1) {
-        infoEl.textContent = 'Route split into ' + numRoutes + ' segments (Google Maps limit: ' + MAX_WAYPOINTS + ' stops per route).';
-        showEl('route-info');
-        for (var r = 0; r < numRoutes; r++) {
-          var startIdx = r * MAX_WAYPOINTS, endIdx = Math.min(startIdx + MAX_WAYPOINTS, locations.length);
-          var labelParts = [];
-          if (r === 0) labelParts.push('Office');
-          labelParts.push('Stops ' + (startIdx + 1) + '-' + endIdx);
-          if (r === numRoutes - 1) labelParts.push('Office');
-          buttonsHtml += '<button class="btn btn-google" type="button" onclick="openGoogleMaps(' + r + ')">🗺️ Route ' + (r + 1) + ': ' + labelParts.join(' → ') + '</button>';
-        }
-      } else {
-        hideEl('route-info');
-        buttonsHtml = '<button class="btn btn-google" type="button" onclick="openGoogleMaps(0)">🗺️ Open in Google Maps</button>';
-      }
-      document.getElementById('route-buttons').innerHTML = buttonsHtml;
-    }
-
-    function openGoogleMaps(routeIndex) {
-      var numRoutes = Math.ceil(locations.length / MAX_WAYPOINTS);
-      var isFirst = (routeIndex === 0), isLast = (routeIndex === numRoutes - 1);
-      var startIdx = routeIndex * MAX_WAYPOINTS, endIdx = Math.min(startIdx + MAX_WAYPOINTS, locations.length);
-      var routeLocs = locations.slice(startIdx, endIdx);
-      
-      var url = 'https://www.google.com/maps/dir/?api=1';
-      url += '&origin=' + (isFirst ? OFFICE_LAT + ',' + OFFICE_LNG : routeLocs[0].lat + ',' + routeLocs[0].lng);
-      url += '&destination=' + (isLast ? OFFICE_LAT + ',' + OFFICE_LNG : routeLocs[routeLocs.length - 1].lat + ',' + routeLocs[routeLocs.length - 1].lng);
-      
-      var waypoints = [];
-      for (var i = (isFirst ? 0 : 1); i < (isLast ? routeLocs.length : routeLocs.length - 1); i++) {
-        waypoints.push(routeLocs[i].lat + ',' + routeLocs[i].lng);
-      }
-      if (waypoints.length > 0) url += '&waypoints=' + waypoints.join('|');
-      url += '&travelmode=driving';
-      window.open(url, '_blank');
-    }
-
     function clearAll() {
       locations = []; fullRoute = [];
       document.getElementById('upc-input').value = '';
-      hideEl('route-section'); hideEl('error-msg'); hideEl('route-stats');
+      hideEl('route-section'); hideEl('error-msg'); hideEl('route-stats'); hideEl('drag-hint');
+      document.getElementById('route-note').classList.remove('show');
       if (map) { mapLayers.forEach(function(l) { map.removeLayer(l); }); mapLayers = []; }
     }
 
