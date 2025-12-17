@@ -246,6 +246,11 @@
     var draggedItem = null;
     var isUpdating = false;
 
+    // Clean UPC - removes ALL whitespace including non-breaking spaces (U+00A0) from Excel
+    function cleanUPC(str) {
+      return String(str || '').replace(/[\s\u00A0\u2007\u202F]+/g, '').trim();
+    }
+
     var letterMap = {'066':'A','065':'B','064':'C','063':'D','062':'E','061':'F','060':'G','059':'H','058':'J','057':'K','056':'L','055':'M','054':'N','053':'P','052':'Q','051':'R','050':'S','049':'T','048':'U','047':'V','046':'W','045':'X','044':'Y','043':'Z'};
     
     function parseUPC(upc) {
@@ -653,7 +658,7 @@
             for (var i = 0; i < jsonData.length; i++) {
               var row = jsonData[i];
               // Try PARID from lat/long column first, then X Y column
-              var parid = String(row['PARID LAT LONG'] || row['PARID X Y'] || row['PARID'] || '').trim();
+              var parid = cleanUPC(row['PARID LAT LONG'] || row['PARID X Y'] || row['PARID'] || '');
               if (!parid) continue;
               
               // Try lat/long DMS format first
@@ -698,13 +703,14 @@
 
     async function handleSearch() {
       var input = document.getElementById('upc-input').value;
-      var upcs = input.split(/[,\n\s]+/).filter(function(u) { return u.trim(); });
+      // Split on any whitespace (including non-breaking spaces) and clean each UPC
+      var upcs = input.split(/[\s\u00A0,\n]+/).map(cleanUPC).filter(function(u) { return u.length > 0; });
       
       if (upcs.length === 0) { showError('Enter at least one UPC'); return; }
 
       var found = [], notFound = [];
       for (var i = 0; i < upcs.length; i++) {
-        var upc = upcs[i].trim();
+        var upc = upcs[i]; // Already cleaned
         if (data[upc]) found.push({ upc: upc, lat: data[upc].lat, lng: data[upc].lng, url: data[upc].url, type: 'property' });
         else notFound.push(upc);
       }
