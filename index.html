@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Property Driving Directions</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <title>BernCo Property Driving Directions</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
   <style>
@@ -150,21 +149,11 @@
         </summary>
         <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #e2e8f0;">
           <div style="margin-bottom: 12px;">
-            <strong style="color: #1e40af;">Step 1: Upload Your Data File</strong>
-            <p style="margin: 4px 0; color: #475569; font-size: 0.875rem;">Upload an Excel file (.xlsx or .xls) containing property coordinates. The file should have these columns:</p>
-            <ul style="margin: 8px 0 8px 20px; color: #475569; font-size: 0.85rem;">
-              <li><code>PARID LAT LONG</code> or <code>PARID X Y</code> or <code>PARID</code> — The property ID</li>
-              <li><code>DRIVING DIRECTIONS LAT LONG</code> — Google Maps URL with lat/long in DMS format (preferred)</li>
-              <li><code>DRIVING DIRECTIONS</code> — Google Maps URL with decimal X/Y coordinates (fallback)</li>
-            </ul>
-            <p style="margin: 4px 0; color: #64748b; font-size: 0.8rem; font-style: italic;">💡 The tool will try to use Lat/Long coordinates first. If unavailable, it falls back to X/Y coordinates.</p>
+            <strong style="color: #1e40af;">Step 1: Enter UPCs</strong>
+            <p style="margin: 4px 0; color: #475569; font-size: 0.875rem;">Type or paste one or more UPCs into the text box. The tool retrieves each parcel directly from the BernCo Assessor GIS layer and calculates its center point.</p>
           </div>
           <div style="margin-bottom: 12px;">
-            <strong style="color: #1e40af;">Step 2: Enter Property IDs (UPCs/PARIDs)</strong>
-            <p style="margin: 4px 0; color: #475569; font-size: 0.875rem;">Type or paste one or more property IDs into the text box. You can separate them with commas, spaces, or new lines.</p>
-          </div>
-          <div style="margin-bottom: 12px;">
-            <strong style="color: #1e40af;">Step 3: Build & Customize Your Route</strong>
+            <strong style="color: #1e40af;">Step 2: Build & Customize Your Route</strong>
             <p style="margin: 4px 0; color: #475569; font-size: 0.875rem;">Click "Build Route" to generate your driving itinerary. You can:</p>
             <ul style="margin: 8px 0 8px 20px; color: #475569; font-size: 0.85rem;">
               <li>Drag and drop stops to reorder them</li>
@@ -180,23 +169,12 @@
       </details>
     </div>
     
-    <div id="upload-section" class="card">
-      <h2>Load Your Data</h2>
-      <p>Upload the <code>driving.xlsx</code> file</p>
-      <input type="file" id="file-input" accept=".xlsx,.xls">
-    </div>
-    
-    <div id="success-banner" class="success-banner" style="display: none;">
-      <span class="success-text">✓ <span id="record-count">0</span> properties loaded</span>
-      <button type="button" onclick="resetFile()">Change file</button>
-    </div>
-    
     <div id="input-section" class="card">
-      <h3>Enter UPCs (PARIDs)</h3>
-      <textarea id="upc-input" placeholder="100806539516140960&#10;100806539516640961&#10;100806539517040962" disabled></textarea>
-      <p class="hint">Comma, space, or newline separated</p>
+      <h3>Enter UPCs</h3>
+      <textarea id="upc-input" placeholder="100806539516140960&#10;100806539516640961&#10;100806539517040962"></textarea>
+      <p class="hint">Comma, space, or newline separated · Coordinates come directly from BernCo Assessor GIS</p>
       <div class="btn-row">
-        <button id="search-btn" class="btn btn-primary" type="button" onclick="handleSearch()" disabled>🔍 Build Route</button>
+        <button id="search-btn" class="btn btn-primary" type="button" onclick="handleSearch()">🔍 Build Route</button>
         <button class="btn btn-secondary" type="button" onclick="clearAll()">Clear</button>
       </div>
       <div id="error-msg" class="error" style="display: none;"></div>
@@ -242,6 +220,7 @@
     var OFFICE_LAT = 35.08302237882336;
     var OFFICE_LNG = -106.65286131510351;
     var MAX_WAYPOINTS = 9;
+    var GIS_QUERY_URL = 'https://assessormap.bernco.gov/server/rest/services/Enterprise_Assessment_And_Tax/Public_Access_Parcel_Data_EAT/MapServer/0/query';
     var data = {}, locations = [], fullRoute = [], map = null, mapLayers = [];
     var draggedItem = null;
     var isUpdating = false;
@@ -373,6 +352,7 @@
           var parsed = parseUPC(loc.upc);
           marker = L.marker(latLng, { icon: createMarkerIcon(i, false) });
           popupText = '<b>Stop ' + i + '</b><br>' + parsed.shortCode + '<br><span style="font-size:10px;color:#666;">' + loc.upc + '</span>';
+          if (loc.situs && loc.situs !== 'N/A') popupText += '<br><span style="font-size:11px;">' + loc.situs + '</span>';
         }
         marker.bindPopup(popupText);
         marker.addTo(map);
@@ -617,101 +597,117 @@
       window.open(url, '_blank');
     }
 
-    // Parse DMS format like "N35° 11' 15.19",W106° 30' 8.25"" to decimal
-    function parseDMS(dmsStr) {
-      if (!dmsStr) return null;
-      // Match pattern: N/S followed by degrees, minutes, seconds, then W/E followed by degrees, minutes, seconds
-      var pattern = /([NS])(\d+)[°]\s*(\d+)['']\s*([\d.]+)[""']*\s*,\s*([WE])(\d+)[°]\s*(\d+)['']\s*([\d.]+)/i;
-      var match = String(dmsStr).match(pattern);
-      if (!match) return null;
-      
-      var latDir = match[1].toUpperCase();
-      var latDeg = parseFloat(match[2]);
-      var latMin = parseFloat(match[3]);
-      var latSec = parseFloat(match[4]);
-      
-      var lngDir = match[5].toUpperCase();
-      var lngDeg = parseFloat(match[6]);
-      var lngMin = parseFloat(match[7]);
-      var lngSec = parseFloat(match[8]);
-      
-      var lat = latDeg + (latMin / 60) + (latSec / 3600);
-      var lng = lngDeg + (lngMin / 60) + (lngSec / 3600);
-      
-      if (latDir === 'S') lat = -lat;
-      if (lngDir === 'W') lng = -lng;
-      
-      return { lat: lat, lng: lng };
+    function ringCentroid(ring) {
+      var twiceArea = 0, xTotal = 0, yTotal = 0;
+      for (var i = 0; i < ring.length; i++) {
+        var current = ring[i], next = ring[(i + 1) % ring.length];
+        var cross = current[0] * next[1] - next[0] * current[1];
+        twiceArea += cross;
+        xTotal += (current[0] + next[0]) * cross;
+        yTotal += (current[1] + next[1]) * cross;
+      }
+      if (Math.abs(twiceArea) < 1e-12) return null;
+      return {
+        lng: xTotal / (3 * twiceArea),
+        lat: yTotal / (3 * twiceArea),
+        area: Math.abs(twiceArea / 2)
+      };
     }
 
-    window.onload = function() {
-      document.getElementById('file-input').onchange = function(e) {
-        var file = e.target.files[0];
-        if (!file) return;
-        var reader = new FileReader();
-        reader.onload = function(evt) {
-          try {
-            var wb = XLSX.read(evt.target.result, { type: 'binary' });
-            var ws = wb.Sheets[wb.SheetNames[0]];
-            var jsonData = XLSX.utils.sheet_to_json(ws);
-            data = {};
-            for (var i = 0; i < jsonData.length; i++) {
-              var row = jsonData[i];
-              // Try PARID from lat/long column first, then X Y column
-              var parid = cleanUPC(row['PARID LAT LONG'] || row['PARID X Y'] || row['PARID'] || '');
-              if (!parid) continue;
-              
-              // Try lat/long DMS format first
-              var latLongUrl = row['DRIVING DIRECTIONS LAT LONG'] || '';
-              var dmsMatch = String(latLongUrl).match(/origin=([NS][^,]+,[WE][^&\s]+)/i);
-              if (dmsMatch) {
-                var coords = parseDMS(dmsMatch[1]);
-                if (coords) {
-                  data[parid] = { lat: coords.lat, lng: coords.lng, url: latLongUrl };
-                  continue;
-                }
-              }
-              
-              // Fall back to X Y decimal format
-              var xyUrl = row['DRIVING DIRECTIONS'] || '';
-              var xyMatch = String(xyUrl).match(/origin=([0-9.-]+),([0-9.-]+)/);
-              if (xyMatch) {
-                data[parid] = { lat: parseFloat(xyMatch[1]), lng: parseFloat(xyMatch[2]), url: xyUrl };
-              }
-            }
-            document.getElementById('record-count').textContent = Object.keys(data).length.toLocaleString();
-            hideEl('upload-section');
-            showEl('success-banner');
-            document.getElementById('upc-input').disabled = false;
-            document.getElementById('search-btn').disabled = false;
-            hideEl('error-msg');
-          } catch (err) { alert('Error reading file: ' + err.message); }
-        };
-        reader.readAsBinaryString(file);
-      };
-    };
+    function polygonCentroid(rings) {
+      var weightedLng = 0, weightedLat = 0, totalArea = 0;
+      for (var i = 0; i < rings.length; i++) {
+        var center = ringCentroid(rings[i]);
+        if (!center) continue;
+        var weight = i === 0 ? center.area : -center.area;
+        weightedLng += center.lng * weight;
+        weightedLat += center.lat * weight;
+        totalArea += weight;
+      }
+      if (Math.abs(totalArea) < 1e-12) return null;
+      return { lng: weightedLng / totalArea, lat: weightedLat / totalArea, area: Math.abs(totalArea) };
+    }
 
-    function resetFile() {
-      data = {};
-      showEl('upload-section');
-      hideEl('success-banner');
-      document.getElementById('upc-input').disabled = true;
-      document.getElementById('search-btn').disabled = true;
-      document.getElementById('file-input').value = '';
-      clearAll();
+    function geometryCentroid(geometry) {
+      if (!geometry || !geometry.coordinates) return null;
+      var polygons = geometry.type === 'Polygon' ? [geometry.coordinates] : geometry.coordinates;
+      if (geometry.type !== 'Polygon' && geometry.type !== 'MultiPolygon') return null;
+      var weightedLng = 0, weightedLat = 0, totalArea = 0;
+      for (var i = 0; i < polygons.length; i++) {
+        var center = polygonCentroid(polygons[i]);
+        if (!center) continue;
+        weightedLng += center.lng * center.area;
+        weightedLat += center.lat * center.area;
+        totalArea += center.area;
+      }
+      if (totalArea === 0) return null;
+      return { lng: weightedLng / totalArea, lat: weightedLat / totalArea };
+    }
+
+    async function queryGIS(upcs) {
+      var whereValues = upcs.map(function(upc) { return "'" + upc + "'"; }).join(',');
+      var params = new URLSearchParams({
+        where: 'UPC IN (' + whereValues + ')',
+        outFields: 'UPC,SITUSADD,SITUSCITY',
+        returnGeometry: 'true',
+        outSR: '4326',
+        f: 'geojson'
+      });
+      var response = await fetch(GIS_QUERY_URL + '?' + params.toString());
+      if (!response.ok) throw new Error('BernCo GIS returned HTTP ' + response.status);
+      var result = await response.json();
+      if (result.error) throw new Error(result.error.message || 'BernCo GIS query failed');
+      var features = result.features || [];
+      for (var i = 0; i < features.length; i++) {
+        var feature = features[i];
+        var upc = cleanUPC(feature.properties && feature.properties.UPC);
+        var center = geometryCentroid(feature.geometry);
+        if (!upc || !center) continue;
+        var address = cleanUPC(feature.properties.SITUSADD) === 'N/A' ? '' : String(feature.properties.SITUSADD || '').trim();
+        data[upc] = {
+          lat: center.lat,
+          lng: center.lng,
+          situs: address,
+          city: String(feature.properties.SITUSCITY || '').trim()
+        };
+      }
+    }
+
+    async function loadUPCsFromGIS(upcs) {
+      var missing = upcs.filter(function(upc) { return !data[upc]; });
+      for (var i = 0; i < missing.length; i += 40) {
+        await queryGIS(missing.slice(i, i + 40));
+      }
     }
 
     async function handleSearch() {
       var input = document.getElementById('upc-input').value;
-      // Split on any whitespace (including non-breaking spaces) and clean each UPC
       var upcs = input.split(/[\s\u00A0,\n]+/).map(cleanUPC).filter(function(u) { return u.length > 0; });
+      upcs = upcs.filter(function(upc, index) { return upcs.indexOf(upc) === index; });
       
       if (upcs.length === 0) { showError('Enter at least one UPC'); return; }
 
+      var invalid = upcs.filter(function(upc) { return !/^[0-9A-Za-z]{18,30}$/.test(upc); });
+      if (invalid.length > 0) { showError('Invalid UPC: ' + invalid.join(', ')); return; }
+
+      var searchButton = document.getElementById('search-btn');
+      searchButton.disabled = true;
+      searchButton.textContent = 'Looking up parcels...';
+      hideEl('error-msg');
+
+      try {
+        await loadUPCsFromGIS(upcs);
+      } catch (err) {
+        showError('Could not reach BernCo GIS: ' + err.message);
+        searchButton.disabled = false;
+        searchButton.textContent = '🔍 Build Route';
+        return;
+      }
+
       var found = [], notFound = [];
       for (var i = 0; i < upcs.length; i++) {
-        var upc = upcs[i]; // Already cleaned
-        if (data[upc]) found.push({ upc: upc, lat: data[upc].lat, lng: data[upc].lng, url: data[upc].url, type: 'property' });
+        var upc = upcs[i];
+        if (data[upc]) found.push({ upc: upc, lat: data[upc].lat, lng: data[upc].lng, situs: data[upc].situs, city: data[upc].city, type: 'property' });
         else notFound.push(upc);
       }
 
@@ -740,6 +736,9 @@
           await updateMap(); 
         }, 100);
       }
+
+      searchButton.disabled = false;
+      searchButton.textContent = '🔍 Build Route';
     }
 
     function clearAll() {
