@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com; style-src 'self' 'unsafe-inline' https://unpkg.com; img-src 'self' data: blob: https:; connect-src 'self' https:; object-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://unpkg.com 'sha256-sLzOekfN5HXCvOcXC+kr+euRVk+9yNdWtvTU0Bm349E='; style-src 'self' https://unpkg.com 'sha256-Gk+EcMnFinFWylIar0rjfay6OY14KHLbUlIULEQ4+hs='; style-src-attr 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https:; object-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests">
   <meta name="referrer" content="no-referrer">
   <title>BernCo Property Route Planner</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="anonymous">
@@ -23,7 +23,7 @@
       --red-bg: #fff1f0;
       --slate-900: #172b3a;
       --slate-700: #405766;
-      --slate-500: #6c7f8c;
+      --slate-500: #536a78;
       --slate-300: #bdcbd4;
       --slate-200: #dbe4e9;
       --slate-100: #edf2f5;
@@ -40,6 +40,7 @@
       color: var(--slate-900);
       background: linear-gradient(145deg, #f7fafb 0%, #e7f0f5 100%);
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.5;
     }
     button, input, textarea, select { font: inherit; }
     button, summary, select, input[type="checkbox"] { cursor: pointer; }
@@ -47,7 +48,7 @@
       outline: 3px solid rgba(23, 105, 170, 0.25);
       outline-offset: 2px;
     }
-    .shell { max-width: 1180px; margin: 0 auto; padding: 22px 18px 48px; }
+    .shell { max-width: 1240px; margin: 0 auto; padding: 22px 18px 72px; }
     .app-header {
       display: flex;
       justify-content: space-between;
@@ -65,13 +66,13 @@
       padding: 8px 12px;
       color: var(--amber);
       background: var(--amber-bg);
-      font-size: 0.74rem;
+      font-size: 0.82rem;
       font-weight: 750;
       text-align: center;
     }
     .service-badge.approved { border-color: #91d6ae; color: var(--green); background: var(--green-bg); }
-    .layout { display: grid; grid-template-columns: minmax(300px, 0.78fr) minmax(0, 1.5fr); gap: 18px; align-items: start; }
-    .sidebar { display: grid; gap: 16px; }
+    .layout { display: grid; grid-template-columns: minmax(320px, 0.72fr) minmax(0, 1.65fr); gap: 18px; align-items: start; }
+    .sidebar { position: sticky; top: 16px; display: grid; gap: 16px; }
     .card {
       border: 1px solid var(--slate-200);
       border-radius: 16px;
@@ -95,7 +96,7 @@
       font-size: 0.75rem;
       font-weight: 800;
     }
-    label { display: block; margin-bottom: 7px; color: var(--slate-700); font-size: 0.8rem; font-weight: 700; }
+    label { display: block; margin-bottom: 7px; color: var(--slate-700); font-size: 0.875rem; font-weight: 700; }
     textarea, input[type="text"], input[type="url"], input[type="number"], select {
       width: 100%;
       border: 1px solid var(--slate-300);
@@ -103,22 +104,23 @@
       color: var(--slate-900);
       background: white;
       padding: 10px 11px;
+      min-height: 44px;
     }
-    textarea { min-height: 148px; resize: vertical; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.84rem; }
+    textarea { min-height: 148px; resize: vertical; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.9rem; }
     textarea:disabled, input:disabled, select:disabled { cursor: not-allowed; background: var(--slate-100); }
-    .hint { margin: 7px 0 0; color: var(--slate-500); font-size: 0.72rem; line-height: 1.45; }
+    .hint { margin: 7px 0 0; color: var(--slate-500); font-size: 0.84rem; line-height: 1.5; }
     .options { display: grid; gap: 8px; margin: 13px 0; }
-    .check-row { display: flex; align-items: flex-start; gap: 9px; color: var(--slate-700); font-size: 0.78rem; line-height: 1.4; }
-    .check-row input { margin-top: 2px; accent-color: var(--blue); }
+    .check-row { display: flex; align-items: flex-start; gap: 9px; margin: 0; color: var(--slate-700); font-size: 0.86rem; line-height: 1.45; }
+    .check-row input { width: 18px; height: 18px; margin-top: 1px; flex: 0 0 auto; accent-color: var(--blue); }
     .btn-row { display: flex; flex-wrap: wrap; gap: 8px; }
     .btn {
-      min-height: 42px;
+      min-height: 44px;
       border: 1px solid transparent;
       border-radius: 9px;
       padding: 9px 13px;
       color: var(--slate-900);
       background: var(--slate-100);
-      font-size: 0.82rem;
+      font-size: 0.875rem;
       font-weight: 750;
       transition: background 150ms ease, border-color 150ms ease, transform 150ms ease;
     }
@@ -130,8 +132,8 @@
     .btn-success { color: white; background: var(--green); }
     .btn-warning { border-color: #eec870; color: #774407; background: #fff9e9; }
     .btn-danger { border-color: #f1b5b0; color: var(--red); background: var(--red-bg); }
-    .btn-small { min-height: 34px; padding: 6px 9px; font-size: 0.74rem; }
-    .btn-icon { width: 34px; min-height: 34px; padding: 4px; line-height: 1; }
+    .btn-small { min-height: 44px; padding: 7px 10px; font-size: 0.84rem; }
+    .btn-icon { width: 44px; min-height: 44px; padding: 4px; line-height: 1; }
     .btn-block { width: 100%; }
     .notice {
       display: none;
@@ -139,7 +141,7 @@
       border: 1px solid var(--slate-200);
       border-radius: 9px;
       padding: 10px 11px;
-      font-size: 0.78rem;
+      font-size: 0.86rem;
       line-height: 1.4;
     }
     .notice.show { display: block; }
@@ -147,26 +149,27 @@
     .notice.success { border-color: #9bd7b4; color: var(--green); background: var(--green-bg); }
     .notice.warning { border-color: #efcc81; color: var(--amber); background: var(--amber-bg); }
     .notice.error { border-color: #efb5b1; color: var(--red); background: var(--red-bg); }
-    details > summary { color: var(--navy); font-size: 0.86rem; font-weight: 800; }
+    details > summary { color: var(--navy); font-size: 0.92rem; font-weight: 800; }
     details > summary::marker { color: var(--blue); }
     .settings-grid { display: grid; gap: 11px; margin-top: 14px; }
-    .setting-note { margin: 10px 0 0; color: var(--slate-500); font-size: 0.72rem; line-height: 1.45; }
+    .setting-note { margin: 10px 0 0; color: var(--slate-500); font-size: 0.84rem; line-height: 1.5; }
     .lookup-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; margin-top: 11px; }
     .lookup-cell { border: 1px solid var(--slate-200); border-radius: 8px; padding: 8px; background: #fbfdfe; text-align: center; }
     .lookup-cell strong { display: block; color: var(--navy); font-size: 1rem; }
-    .lookup-cell span { color: var(--slate-500); font-size: 0.67rem; }
+    .lookup-cell span { color: var(--slate-500); font-size: 0.82rem; }
     #route-section { min-width: 0; }
     .route-toolbar { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 9px; margin-bottom: 12px; }
     .toolbar-group { display: flex; flex-wrap: wrap; gap: 7px; }
     .progress-wrap { margin-bottom: 12px; }
-    .progress-line { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 6px; color: var(--slate-700); font-size: 0.76rem; font-weight: 700; }
+    .progress-line { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 6px; color: var(--slate-700); font-size: 0.875rem; font-weight: 700; }
     .progress-track { height: 8px; overflow: hidden; border-radius: 999px; background: var(--slate-100); }
     .progress-fill { width: 0%; height: 100%; border-radius: inherit; background: var(--green); transition: width 180ms ease; }
+    .map-panel { margin-top: 12px; }
     .map-wrap { position: relative; }
     #map { height: 390px; border: 1px solid var(--slate-200); border-radius: 12px; background: var(--slate-100); }
     .map-fallback { display: none; min-height: 170px; place-items: center; border: 1px dashed var(--slate-300); border-radius: 12px; color: var(--slate-500); text-align: center; padding: 24px; }
     .map-fallback.show { display: grid; }
-    .map-legend { display: flex; flex-wrap: wrap; gap: 13px; margin: 9px 0 12px; color: var(--slate-500); font-size: 0.7rem; }
+    .map-legend { display: flex; flex-wrap: wrap; gap: 13px; margin: 9px 0 12px; color: var(--slate-500); font-size: 0.82rem; }
     .legend-item { display: inline-flex; align-items: center; gap: 6px; }
     .legend-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--blue); }
     .legend-dot.office { background: var(--green); }
@@ -175,12 +178,12 @@
     .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 12px 0; }
     .stat { border: 1px solid #c4dcec; border-radius: 10px; padding: 9px 10px; background: #f1f8fc; }
     .stat strong { display: block; color: var(--navy); font-size: 0.96rem; }
-    .stat span { color: var(--slate-500); font-size: 0.67rem; }
+    .stat span { color: var(--slate-500); font-size: 0.82rem; }
     .spinner { width: 15px; height: 15px; border: 2px solid #e9c76f; border-top-color: var(--amber); border-radius: 50%; animation: spin 800ms linear infinite; }
-    .updating { display: none; align-items: center; gap: 8px; margin: 10px 0; color: var(--amber); font-size: 0.75rem; font-weight: 700; }
+    .updating { display: none; align-items: center; gap: 8px; margin: 10px 0; color: var(--amber); font-size: 0.82rem; font-weight: 700; }
     .updating.show { display: flex; }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .route-list { display: grid; gap: 8px; max-height: 640px; overflow: auto; padding-right: 2px; }
+    .route-list { display: grid; gap: 9px; }
     .route-item {
       display: grid;
       grid-template-columns: auto auto minmax(0, 1fr) auto;
@@ -197,6 +200,7 @@
     .route-item.completed { border-color: #b8c4cb; background: #f3f6f7; }
     .route-item.skipped { border-color: #e7c382; background: #fffaec; }
     .route-item.revisit { border-color: #d7b4e8; background: #fbf4ff; }
+    .route-item.active { border-color: var(--blue); box-shadow: 0 0 0 2px rgba(23, 105, 170, 0.12); }
     .sequence {
       display: grid;
       place-items: center;
@@ -205,20 +209,20 @@
       border-radius: 50%;
       color: white;
       background: var(--blue);
-      font-size: 0.72rem;
+      font-size: 0.78rem;
       font-weight: 850;
     }
     .drag-handle { color: var(--slate-500); font-size: 1rem; user-select: none; }
     .stop-copy { min-width: 0; }
     .stop-title { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
     .short-code { border-radius: 5px; padding: 2px 6px; color: var(--blue-dark); background: var(--sky); font-size: 0.7rem; font-weight: 800; }
-    .upc { overflow: hidden; color: var(--slate-700); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.73rem; text-overflow: ellipsis; white-space: nowrap; }
-    .address { margin-top: 4px; color: var(--slate-500); font-size: 0.72rem; }
-    .access-note { margin-top: 3px; color: var(--amber); font-size: 0.67rem; }
+    .upc { overflow: hidden; color: var(--slate-700); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.86rem; text-overflow: ellipsis; white-space: nowrap; }
+    .address { margin-top: 4px; color: var(--slate-500); font-size: 0.875rem; }
+    .access-note { margin-top: 3px; color: var(--amber); font-size: 0.82rem; }
     .stop-actions { display: flex; align-items: center; gap: 5px; }
     .stop-details { grid-column: 3 / -1; display: grid; grid-template-columns: 145px minmax(160px, 1fr) auto; gap: 7px; align-items: center; }
-    .status-select { padding: 7px 8px; font-size: 0.72rem; }
-    .notes-input { padding: 7px 8px !important; font-size: 0.72rem; }
+    .status-select { padding: 7px 8px; font-size: 0.875rem; }
+    .notes-input { padding: 7px 8px !important; font-size: 0.875rem; }
     .route-buttons { display: grid; gap: 7px; margin-top: 12px; }
     .segment-btn { width: 100%; color: white; background: var(--green); }
     .segment-btn:hover:not(:disabled) { background: #105d39; }
@@ -232,7 +236,7 @@
       color: white;
       background: var(--blue);
       box-shadow: 0 2px 7px rgba(0, 0, 0, 0.35);
-      font-size: 0.66rem;
+      font-size: 0.72rem;
       font-weight: 850;
     }
     .custom-marker.office { width: 31px; height: 31px; background: var(--green); font-size: 0.85rem; }
@@ -242,14 +246,49 @@
     .print-header { display: none; }
     .empty-state { display: grid; min-height: 430px; place-items: center; color: var(--slate-500); text-align: center; padding: 28px; }
     .empty-state strong { display: block; margin-bottom: 7px; color: var(--navy); font-size: 1.05rem; }
+    .privacy-gate { margin: 13px 0; border: 1px solid #efcc81; border-radius: 10px; padding: 11px; color: var(--amber); background: var(--amber-bg); }
+    .privacy-gate strong { display: block; color: #744406; font-size: 0.88rem; }
+    .privacy-gate p { margin: 4px 0 9px; font-size: 0.8rem; }
+    .privacy-gate .check-row { color: #69420d; }
+    .current-stop { margin: 13px 0; border: 1px solid #9fcbe8; border-radius: 13px; padding: 14px; background: linear-gradient(135deg, #f7fcff, var(--sky)); }
+    .current-stop.complete { border-color: #9bd7b4; background: var(--green-bg); }
+    .current-stop-kicker { margin: 0 0 4px; color: var(--blue-dark); font-size: 0.76rem; font-weight: 850; letter-spacing: 0.06em; text-transform: uppercase; }
+    .current-stop h3 { font-size: 1.05rem; }
+    .current-stop-address { margin: 4px 0 0; color: var(--slate-700); font-size: 0.9rem; }
+    .current-stop-warning { margin: 5px 0 0; color: var(--amber); font-size: 0.82rem; font-weight: 700; }
+    .field-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .field-actions .btn-primary { flex: 1 1 180px; }
+    .save-state-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 2px 0 12px; }
+    .save-state-row .hint { margin: 0; }
+    .map-toggle-row { display: flex; justify-content: flex-end; margin-top: 4px; }
+    .mobile-field-bar { display: none; }
     .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
     @media (max-width: 720px) {
       .layout { grid-template-columns: 1fr; }
+      .sidebar { position: static; }
       .app-header { flex-direction: column; }
       .service-badge { align-self: flex-start; }
       #map { height: 330px; }
-      .route-list { max-height: none; }
+      .mobile-field-bar {
+        position: fixed;
+        right: 10px;
+        bottom: 10px;
+        left: 10px;
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        border: 1px solid #9fcbe8;
+        border-radius: 14px;
+        padding: 9px;
+        background: rgba(255, 255, 255, 0.97);
+        box-shadow: 0 10px 30px rgba(18, 50, 74, 0.22);
+      }
+      .mobile-field-copy { min-width: 0; color: var(--slate-700); font-size: 0.78rem; }
+      .mobile-field-copy strong { display: block; overflow: hidden; color: var(--navy); font-size: 0.88rem; text-overflow: ellipsis; white-space: nowrap; }
+      .mobile-field-bar .btn { flex: 0 0 auto; }
     }
     @media (max-width: 600px) {
       .shell { padding: 14px 10px 34px; }
@@ -259,8 +298,12 @@
       .drag-handle { display: none; }
       .stop-details { grid-column: 2 / -1; grid-template-columns: 1fr; }
       .stop-actions { flex-direction: column; }
-      .btn-icon { width: 38px; min-height: 38px; }
+      .btn-small { min-height: 44px; }
       #map { height: 285px; }
+      .route-toolbar, .field-actions { display: grid; grid-template-columns: 1fr; }
+      .toolbar-group { display: grid; grid-template-columns: 1fr 1fr; }
+      .toolbar-group .btn { width: 100%; }
+      .save-state-row { align-items: flex-start; flex-direction: column; }
     }
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
@@ -268,7 +311,7 @@
     @media print {
       body { background: white; }
       .shell { max-width: none; padding: 0; }
-      .app-header, .sidebar, .route-toolbar, .map-wrap, .map-legend, .updating, .route-buttons, #route-note, .btn, .drag-handle, .stop-actions { display: none !important; }
+      .app-header, .sidebar, .route-toolbar, .map-panel, .map-toggle-row, .updating, .route-buttons, #route-note, .btn, .drag-handle, .stop-actions, .mobile-field-bar, .current-stop { display: none !important; }
       .layout { display: block; }
       .card { border: 0; box-shadow: none; padding: 0; }
       .print-header { display: block; margin-bottom: 14px; border-bottom: 2px solid #1d2d38; padding-bottom: 10px; }
@@ -290,7 +333,7 @@
         <h1>Property Route Planner</h1>
         <p class="subtitle">Build an efficient parcel itinerary, verify road access, track field outcomes, and open continuous route segments in Google Maps.</p>
       </div>
-      <div id="service-badge" class="service-badge">Public routing fallback</div>
+      <div id="service-badge" class="service-badge">Public services active</div>
     </header>
 
     <div id="live-status" class="sr-only" role="status" aria-live="polite"></div>
@@ -308,11 +351,18 @@
             <label class="check-row" for="snap-roads"><input id="snap-roads" type="checkbox" checked> Snap parcel centers to the nearest routable road when within the configured limit.</label>
             <label class="check-row" for="auto-optimize"><input id="auto-optimize" type="checkbox" checked> Optimize stop order geographically after lookup.</label>
           </div>
-          <div class="btn-row">
-            <button id="search-btn" class="btn btn-primary" type="button">Build optimized route</button>
-            <button id="clear-btn" class="btn btn-secondary" type="button">Clear</button>
+          <div id="privacy-gate" class="privacy-gate">
+            <strong id="privacy-gate-title">External service notice</strong>
+            <p id="privacy-gate-copy">The configured map and routing services will receive parcel coordinates.</p>
+            <label class="check-row" for="external-consent"><input id="external-consent" type="checkbox"> Allow parcel coordinates to be sent to these services for this browser session.</label>
           </div>
-          <div id="input-notice" class="notice" role="alert"></div>
+          <div class="btn-row">
+            <button id="search-btn" class="btn btn-primary" type="button">Build route</button>
+            <button id="clear-btn" class="btn btn-secondary" type="button">Clear</button>
+            <button id="import-btn" class="btn btn-secondary" type="button">Import route</button>
+            <input id="import-file" class="sr-only" type="file" accept="application/json,.json">
+          </div>
+          <div id="input-notice" class="notice" aria-live="polite"></div>
           <div id="lookup-results" hidden>
             <div class="lookup-grid" aria-label="Lookup results">
               <div class="lookup-cell"><strong id="found-count">0</strong><span>Found</span></div>
@@ -322,17 +372,6 @@
             </div>
             <button id="exceptions-btn" class="btn btn-small btn-secondary btn-block" type="button" hidden>Download lookup exceptions</button>
           </div>
-        </section>
-
-        <section class="card" aria-labelledby="saved-title">
-          <div class="card-header"><h2 id="saved-title"><span class="step">2</span>Save and share</h2></div>
-          <div class="btn-row">
-            <button id="export-csv-btn" class="btn btn-secondary" type="button" disabled>Export CSV</button>
-            <button id="export-json-btn" class="btn btn-secondary" type="button" disabled>Backup JSON</button>
-            <button id="import-btn" class="btn btn-secondary" type="button">Import route</button>
-            <input id="import-file" class="sr-only" type="file" accept="application/json,.json">
-          </div>
-          <p id="save-state" class="hint">Routes are automatically saved on this device.</p>
         </section>
 
         <section class="card">
@@ -355,18 +394,27 @@
                 <label for="snap-limit">Maximum road-snap distance (meters)</label>
                 <input id="snap-limit" type="number" min="50" max="5000" step="50">
               </div>
+              <div>
+                <label for="route-retention">Route-data retention</label>
+                <select id="route-retention">
+                  <option value="session">This browser session only</option>
+                  <option value="24h">24 hours</option>
+                  <option value="7d">7 days</option>
+                </select>
+              </div>
               <div class="btn-row">
                 <button id="save-settings-btn" class="btn btn-primary" type="button">Save settings</button>
                 <button id="test-router-btn" class="btn btn-secondary" type="button">Test router</button>
               </div>
             </div>
-            <p class="setting-note">The default public services receive parcel coordinates. Before production use, enter an approved internal or contracted routing endpoint and tile provider.</p>
-            <div id="settings-notice" class="notice" role="status"></div>
+            <p class="setting-note">Custom services are not treated as approved automatically. Production deployments should populate the approved-host list in the configuration and use county-managed endpoints.</p>
+            <div id="settings-notice" class="notice" aria-live="polite"></div>
           </details>
         </section>
       </aside>
 
-      <section id="route-section" class="card" aria-labelledby="route-title">
+      <section id="route-section" class="card" aria-labelledby="route-section-title">
+        <h2 id="route-section-title" class="sr-only">Property route</h2>
         <div id="empty-state" class="empty-state">
           <div><strong>No active route</strong>Enter one or more parcel UPCs to build an itinerary.</div>
         </div>
@@ -379,18 +427,25 @@
           </div>
 
           <div class="card-header">
-            <h2 id="route-title">Route · <span id="stop-count">0</span> properties</h2>
+            <h2 id="route-title"><span class="step">2</span>Route · <span id="stop-count">0</span> properties</h2>
             <span id="route-method" class="short-code">Manual order</span>
           </div>
 
           <div class="route-toolbar">
             <div class="toolbar-group">
-              <button id="optimize-btn" class="btn btn-primary" type="button">Optimize route</button>
-              <button id="next-stop-btn" class="btn btn-success" type="button">Navigate to next stop</button>
+              <button id="optimize-btn" class="btn btn-secondary" type="button">Optimize route</button>
+              <button id="map-toggle-btn" class="btn btn-secondary" type="button" aria-controls="map-panel" aria-expanded="true">Hide map</button>
             </div>
             <div class="toolbar-group">
               <button id="print-btn" class="btn btn-secondary" type="button">Print itinerary</button>
+              <button id="export-csv-btn" class="btn btn-secondary" type="button" disabled>Export CSV</button>
+              <button id="export-json-btn" class="btn btn-secondary" type="button" disabled>Backup JSON</button>
+              <button id="finish-route-btn" class="btn btn-danger" type="button">End route</button>
             </div>
+          </div>
+
+          <div class="save-state-row">
+            <p id="save-state" class="hint">Route data is saved for this browser session only.</p>
           </div>
 
           <div class="progress-wrap">
@@ -398,15 +453,32 @@
             <div class="progress-track" role="progressbar" aria-label="Field progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="progress-fill" class="progress-fill"></div></div>
           </div>
 
-          <div class="map-wrap">
-            <div id="map" aria-label="Route map"></div>
-            <div id="map-fallback" class="map-fallback">The interactive map library could not load. The itinerary and Google Maps directions are still available.</div>
-          </div>
-          <div class="map-legend" aria-label="Map legend">
-            <span class="legend-item"><span class="legend-dot office"></span>Office</span>
-            <span class="legend-item"><span class="legend-dot"></span>Pending property</span>
-            <span class="legend-item"><span class="legend-dot done"></span>Completed</span>
-            <span class="legend-item"><span class="legend-line"></span>Driving route</span>
+          <section id="current-stop" class="current-stop" aria-labelledby="current-stop-title">
+            <p id="current-stop-kicker" class="current-stop-kicker">Next field stop</p>
+            <h3 id="current-stop-title">Preparing route…</h3>
+            <p id="current-stop-address" class="current-stop-address"></p>
+            <p id="current-stop-warning" class="current-stop-warning" hidden></p>
+            <div id="current-stop-actions" class="field-actions">
+              <button id="next-stop-btn" class="btn btn-primary" type="button">Navigate</button>
+              <button id="complete-next-btn" class="btn btn-success" type="button">Mark completed</button>
+              <button id="skip-next-btn" class="btn btn-warning" type="button">Skip</button>
+              <button id="revisit-next-btn" class="btn btn-secondary" type="button">Revisit</button>
+            </div>
+            <p id="current-nav-hint" class="hint">Navigation opens Google Maps and sends the selected coordinates to Google.</p>
+          </section>
+
+          <div id="map-panel" class="map-panel">
+            <p id="map-description" class="sr-only">The map shows the office, ordered property stops, their current status, and the driving route.</p>
+            <div class="map-wrap">
+              <div id="map" role="region" aria-label="Route map" aria-describedby="map-description"></div>
+              <div id="map-fallback" class="map-fallback">The map is unavailable. The ordered itinerary and Google Maps navigation remain available.</div>
+            </div>
+            <div class="map-legend" aria-label="Map legend">
+              <span class="legend-item"><span class="legend-dot office"></span>Office</span>
+              <span class="legend-item"><span class="legend-dot"></span>Pending property</span>
+              <span class="legend-item"><span class="legend-dot done"></span>Completed</span>
+              <span class="legend-item"><span class="legend-line"></span>Driving route</span>
+            </div>
           </div>
 
           <div class="stats" aria-label="Route summary">
@@ -417,9 +489,14 @@
           </div>
 
           <div id="updating-indicator" class="updating"><span class="spinner" aria-hidden="true"></span><span id="updating-text">Updating route…</span></div>
-          <div id="route-note" class="notice"></div>
+          <div id="route-note" class="notice" aria-live="polite"></div>
           <div id="route-list" class="route-list" aria-label="Ordered property stops"></div>
           <div id="route-buttons" class="route-buttons"></div>
+
+          <div id="mobile-field-bar" class="mobile-field-bar">
+            <div class="mobile-field-copy"><span>Next stop</span><strong id="mobile-stop-label">—</strong></div>
+            <button id="mobile-next-stop-btn" class="btn btn-primary" type="button">Navigate</button>
+          </div>
         </div>
       </section>
     </div>
@@ -433,12 +510,18 @@
     var DEFAULT_ROUTER_URL = 'https://router.project-osrm.org';
     var DEFAULT_TILE_URL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
     var DEFAULT_TILE_ATTRIBUTION = '© OpenStreetMap contributors';
-    var STORAGE_KEY = 'bernco-property-route-planner-v2';
-    var SETTINGS_KEY = 'bernco-property-route-settings-v2';
+    var STORAGE_KEY = 'bernco-property-route-planner-v3';
+    var LEGACY_STORAGE_KEY = 'bernco-property-route-planner-v2';
+    var SETTINGS_KEY = 'bernco-property-route-settings-v3';
+    var LEGACY_SETTINGS_KEY = 'bernco-property-route-settings-v2';
+    var CONSENT_KEY = 'bernco-property-route-external-consent-v1';
     var MAX_GOOGLE_POINTS = 5;
     var MAX_ROUTER_POINTS = 24;
     var MAX_TABLE_POINTS = 45;
     var REQUEST_TIMEOUT_MS = 14000;
+    var UPC_PATTERN = /^\d{18}$/;
+    var APPROVED_SERVICE_HOSTS = [];
+    var SERVICE_AREA_BOUNDS = { minLat: 34.6, maxLat: 35.5, minLng: -107.5, maxLng: -105.9 };
     var letterMap = {'066':'A','065':'B','064':'C','063':'D','062':'E','061':'F','060':'G','059':'H','058':'J','057':'K','056':'L','055':'M','054':'N','053':'P','052':'Q','051':'R','050':'S','049':'T','048':'U','047':'V','046':'W','045':'X','044':'Y','043':'Z'};
 
     var settings = loadSettings();
@@ -449,10 +532,16 @@
     var map = null;
     var tileLayer = null;
     var mapLayers = [];
+    var markerByUPC = new Map();
+    var lastMapBounds = null;
     var draggedIndex = null;
     var routeRequestVersion = 0;
     var routeController = null;
+    var lookupController = null;
     var saveTimer = null;
+    var searchBusy = false;
+    var routeBusy = false;
+    var optimizationNotice = '';
 
     function $(id) { return document.getElementById(id); }
     function show(id) { $(id).hidden = false; }
@@ -462,18 +551,20 @@
     function clamp(value, min, max) { return Math.min(max, Math.max(min, value)); }
 
     function defaultSettings() {
-      return { routerUrl: DEFAULT_ROUTER_URL, tileUrl: DEFAULT_TILE_URL, tileAttribution: DEFAULT_TILE_ATTRIBUTION, snapLimit: 1600 };
+      return { routerUrl: DEFAULT_ROUTER_URL, tileUrl: DEFAULT_TILE_URL, tileAttribution: DEFAULT_TILE_ATTRIBUTION, snapLimit: 1600, routeRetention: 'session' };
     }
 
     function loadSettings() {
       var defaults = defaultSettings();
       try {
-        var saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
+        var saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || localStorage.getItem(LEGACY_SETTINGS_KEY) || '{}');
+        var retention = ['session', '24h', '7d'].indexOf(saved.routeRetention) >= 0 ? saved.routeRetention : defaults.routeRetention;
         return {
           routerUrl: validateServiceURL(saved.routerUrl, true) || defaults.routerUrl,
           tileUrl: validateTileURL(saved.tileUrl) || defaults.tileUrl,
           tileAttribution: String(saved.tileAttribution || defaults.tileAttribution).slice(0, 180),
-          snapLimit: clamp(Number(saved.snapLimit) || defaults.snapLimit, 50, 5000)
+          snapLimit: clamp(Number(saved.snapLimit) || defaults.snapLimit, 50, 5000),
+          routeRetention: retention
         };
       } catch (error) {
         return defaults;
@@ -498,38 +589,92 @@
       var probe = raw.replace('{s}', 'a').replace('{z}', '0').replace('{x}', '0').replace('{y}', '0');
       try {
         var url = new URL(probe);
-        if (url.protocol !== 'https:') return '';
+        if (url.protocol !== 'https:' || url.username || url.password) return '';
         return raw;
       } catch (error) {
         return '';
       }
     }
 
+    function serviceHost(value) {
+      try { return new URL(String(value).replace(/\{[sxyz]\}/g, '0')).hostname.toLowerCase(); }
+      catch (error) { return ''; }
+    }
+
+    function servicesAreApproved() {
+      if (!APPROVED_SERVICE_HOSTS.length) return false;
+      return [serviceHost(settings.routerUrl), serviceHost(settings.tileUrl)].every(function(host) { return APPROVED_SERVICE_HOSTS.indexOf(host) >= 0; });
+    }
+
+    function externalConsentGranted() {
+      try { return sessionStorage.getItem(CONSENT_KEY) === 'yes'; }
+      catch (error) { return false; }
+    }
+
+    function externalConsentRequired() { return !servicesAreApproved(); }
+
     function updateServiceBadge() {
-      var approved = settings.routerUrl !== DEFAULT_ROUTER_URL && settings.tileUrl !== DEFAULT_TILE_URL;
-      $('service-badge').textContent = approved ? 'Configured services' : 'Public routing fallback';
+      var approved = servicesAreApproved();
+      var usesDefaults = settings.routerUrl === DEFAULT_ROUTER_URL && settings.tileUrl === DEFAULT_TILE_URL;
+      $('service-badge').textContent = approved ? 'Approved services' : usesDefaults ? 'Public services active' : 'Custom services configured';
       $('service-badge').classList.toggle('approved', approved);
+    }
+
+    function updatePrivacyGate() {
+      var gate = $('privacy-gate');
+      var required = externalConsentRequired();
+      gate.hidden = !required;
+      $('external-consent').checked = externalConsentGranted();
+      var usesDefaults = settings.routerUrl === DEFAULT_ROUTER_URL && settings.tileUrl === DEFAULT_TILE_URL;
+      $('privacy-gate-title').textContent = usesDefaults ? 'Public service notice' : 'Unapproved custom service notice';
+      $('privacy-gate-copy').textContent = usesDefaults
+        ? 'OpenStreetMap and the public OSRM router will receive parcel coordinates when the route is mapped or optimized.'
+        : 'The configured map and routing hosts are not on this deployment’s approved-host list and will receive parcel coordinates.';
+      updateSearchButtonState();
     }
 
     function setNotice(id, message, type) {
       var element = $(id);
       element.textContent = message || '';
       element.className = 'notice' + (message ? ' show ' + (type || 'info') : '');
+      if (message) {
+        element.setAttribute('role', type === 'error' ? 'alert' : 'status');
+        element.setAttribute('aria-live', type === 'error' ? 'assertive' : 'polite');
+      }
+      else {
+        element.removeAttribute('role');
+        element.setAttribute('aria-live', 'polite');
+      }
     }
 
     function announce(message) { $('live-status').textContent = message; }
 
     function setSearchBusy(busy, label) {
-      $('search-btn').disabled = busy;
+      searchBusy = busy;
+      updateSearchButtonState();
       $('clear-btn').disabled = busy;
+      $('import-btn').disabled = busy;
+      updateConsentControlState();
       $('upc-input').disabled = busy;
-      $('search-btn').textContent = busy ? (label || 'Building route…') : 'Build optimized route';
+      $('search-btn').textContent = busy ? (label || 'Building route…') : 'Build route';
+    }
+
+    function updateSearchButtonState() {
+      var blockedByPrivacy = externalConsentRequired() && !externalConsentGranted();
+      $('search-btn').disabled = searchBusy || blockedByPrivacy;
+      $('search-btn').setAttribute('aria-describedby', blockedByPrivacy ? 'privacy-gate-copy' : 'input-title');
     }
 
     function setRouteBusy(busy, message) {
+      routeBusy = busy;
       $('optimize-btn').disabled = busy;
       $('updating-indicator').classList.toggle('show', busy);
       $('updating-text').textContent = message || 'Updating route…';
+      updateConsentControlState();
+    }
+
+    function updateConsentControlState() {
+      $('external-consent').disabled = searchBusy || routeBusy;
     }
 
     async function fetchJSON(url, options) {
@@ -726,7 +871,9 @@
       try {
         var result = await fetchJSON(url, { signal: signal, retries: 1, timeout: 20000 });
         if (result.code !== 'Ok' || !result.durations) throw new Error('Duration matrix unavailable');
-        var usable = result.durations.map(function(row) { return row.map(function(value) { return value == null ? Number.POSITIVE_INFINITY : value; }); });
+        var hasUnreachablePair = result.durations.some(function(row) { return row.some(function(value) { return value == null || !Number.isFinite(Number(value)); }); });
+        if (hasUnreachablePair) return { matrix: fallbackMatrix(items), source: 'straight-line fallback', warning: 'Some stops were unreachable in the road-time matrix, so proximity was used for ordering.' };
+        var usable = result.durations.map(function(row) { return row.map(Number); });
         return { matrix: usable, source: 'road-time matrix' };
       } catch (error) {
         if (signal && signal.aborted) throw error;
@@ -783,6 +930,7 @@
 
     async function calculateOptimizedLocations(items, signal) {
       var matrixResult = await getDurationMatrix(items, signal);
+      optimizationNotice = matrixResult.warning || (matrixResult.source === 'straight-line fallback' ? 'Road-time optimization was unavailable, so proximity was used for ordering.' : '');
       return { locations: optimizeOrder(items, matrixResult.matrix), source: matrixResult.source };
     }
 
@@ -853,7 +1001,7 @@
     function refreshTileLayer() {
       if (!map) return;
       if (tileLayer) map.removeLayer(tileLayer);
-      tileLayer = L.tileLayer(settings.tileUrl, { maxZoom: 19, attribution: settings.tileAttribution, crossOrigin: true });
+      tileLayer = L.tileLayer(settings.tileUrl, { maxZoom: 19, attribution: escapeHTML(settings.tileAttribution), crossOrigin: true });
       tileLayer.addTo(map);
     }
 
@@ -861,10 +1009,24 @@
       if (!map) return;
       mapLayers.forEach(function(layer) { map.removeLayer(layer); });
       mapLayers = [];
+      markerByUPC.clear();
     }
 
     async function updateMap() {
-      if (!locations.length || !initMap()) return;
+      if (!locations.length) return;
+      if (externalConsentRequired() && !externalConsentGranted()) {
+        $('map').style.display = 'none';
+        $('map-fallback').classList.add('show');
+        $('map-fallback').textContent = 'Map and road routing are paused until external-service access is allowed for this browser session.';
+        $('total-distance').textContent = '—';
+        $('total-time').textContent = '—';
+        setNotice('route-note', 'The itinerary is available, but map tiles, road snapping, and road routing remain paused.', 'warning');
+        return;
+      }
+      $('map').style.display = '';
+      $('map-fallback').classList.remove('show');
+      $('map-fallback').textContent = 'The map is unavailable. The ordered itinerary and Google Maps navigation remain available.';
+      if (!initMap()) return;
       routeRequestVersion++;
       var requestVersion = routeRequestVersion;
       if (routeController) routeController.abort();
@@ -872,6 +1034,7 @@
       var signal = routeController.signal;
       clearMapLayers();
       var bounds = L.latLngBounds();
+      lastMapBounds = bounds;
       var coords = routeCoordinates();
 
       var officeStart = L.marker([OFFICE.lat, OFFICE.lng], { icon: markerIcon('O', 'office') }).bindPopup('<strong>Office</strong><br>Route start and end');
@@ -886,6 +1049,7 @@
         var marker = L.marker([location.lat, location.lng], { icon: markerIcon(String(index + 1), 'property', location.status) }).bindPopup(popup);
         marker.addTo(map);
         mapLayers.push(marker);
+        markerByUPC.set(location.upc, marker);
         bounds.extend([location.lat, location.lng]);
       });
 
@@ -898,7 +1062,7 @@
         mapLayers.push(line);
         $('total-distance').textContent = formatDistance(routeData.distance);
         $('total-time').textContent = formatDuration(routeData.duration);
-        setNotice('route-note', accessWarningSummary(), accessWarningSummary() ? 'warning' : '');
+        setNotice('route-note', routeNoticeSummary(), routeNoticeSummary() ? 'warning' : '');
       } catch (error) {
         if (signal.aborted || requestVersion !== routeRequestVersion) return;
         var fallbackLine = L.polyline(coords, { color: '#e66b1d', weight: 3, opacity: 0.8, dashArray: '8,8' }).addTo(map);
@@ -909,8 +1073,8 @@
         $('total-distance').textContent = '~' + formatDistance(estimate);
         $('total-time').textContent = '~' + formatDuration((estimate / 1609.344) / 30 * 3600);
         var warning = 'Road routing is unavailable; the map uses estimated straight-line geometry. Google Maps will calculate its own driving route.';
-        var access = accessWarningSummary();
-        setNotice('route-note', warning + (access ? ' ' + access : ''), 'warning');
+        var supplemental = routeNoticeSummary();
+        setNotice('route-note', warning + (supplemental ? ' ' + supplemental : ''), 'warning');
       } finally {
         if (requestVersion === routeRequestVersion) setRouteBusy(false);
       }
@@ -919,6 +1083,28 @@
     function accessWarningSummary() {
       var count = locations.filter(function(location) { return location.accessWarning; }).length;
       return count ? count + ' stop' + (count === 1 ? '' : 's') + ' require road-access verification. Review the warning under each affected stop.' : '';
+    }
+
+    function routeNoticeSummary() {
+      return [optimizationNotice, accessWarningSummary()].filter(Boolean).join(' ');
+    }
+
+    function refreshMarkerStatus(index) {
+      var location = locations[index];
+      var marker = location && markerByUPC.get(location.upc);
+      if (marker) marker.setIcon(markerIcon(String(index + 1), 'property', location.status));
+    }
+
+    function setMapVisibility(visible) {
+      $('map-panel').hidden = !visible;
+      $('map-toggle-btn').textContent = visible ? 'Hide map' : 'Show map';
+      $('map-toggle-btn').setAttribute('aria-expanded', String(visible));
+      if (visible && map) {
+        setTimeout(function() {
+          map.invalidateSize();
+          if (lastMapBounds && lastMapBounds.isValid()) map.fitBounds(lastMapBounds, { padding: [34, 34], maxZoom: 16 });
+        }, 0);
+      }
     }
 
     function googleSegments() {
@@ -950,6 +1136,7 @@
     function openExternal(url) {
       var opened = window.open(url, '_blank', 'noopener,noreferrer');
       if (opened) opened.opener = null;
+      else setNotice('route-note', 'The browser blocked the navigation window. Allow pop-ups for this page and try again.', 'warning');
     }
 
     function segmentLabel(points, index, totalSegments) {
@@ -985,6 +1172,7 @@
       button.setAttribute('aria-label', label);
       button.textContent = symbol;
       button.disabled = disabled;
+      button.dataset.move = delta < 0 ? 'up' : 'down';
       button.addEventListener('click', function() { moveStop(index, delta); });
       return button;
     }
@@ -997,6 +1185,7 @@
         item.className = 'route-item ' + (location.status || 'pending');
         item.draggable = true;
         item.dataset.index = String(index);
+        item.dataset.upc = location.upc;
 
         var handle = document.createElement('span');
         handle.className = 'drag-handle';
@@ -1054,11 +1243,7 @@
           select.appendChild(option);
         });
         select.addEventListener('change', function() {
-          locations[index].status = select.value;
-          renderRouteList();
-          updateProgress();
-          scheduleSave();
-          updateMap();
+          setStopStatus(index, select.value, { announceChange: true });
         });
         var notes = document.createElement('input');
         notes.type = 'text';
@@ -1110,10 +1295,16 @@
       var moved = locations.splice(fromIndex, 1)[0];
       locations.splice(toIndex, 0, moved);
       routeMethod = 'Manual order';
+      optimizationNotice = '';
       renderAll();
       scheduleSave();
       updateMap();
       announce('Stop moved to position ' + (toIndex + 1));
+      setTimeout(function() {
+        var movedItem = document.querySelector('.route-item[data-index="' + toIndex + '"]');
+        var target = movedItem && movedItem.querySelector('button:not(:disabled)');
+        if (target) target.focus();
+      }, 0);
     }
 
     function moveStop(index, delta) {
@@ -1129,13 +1320,71 @@
     }
 
     function openNextStop() {
-      var index = locations.findIndex(function(location) { return location.status === 'pending' || location.status === 'revisit'; });
+      var index = nextActionIndex();
       if (index === -1) {
         setNotice('route-note', 'Every property is completed or skipped.', 'success');
         announce('No pending stops remain');
         return;
       }
       openSingleStop(index);
+    }
+
+    function nextActionIndex() {
+      var pendingIndex = locations.findIndex(function(location) { return location.status === 'pending'; });
+      return pendingIndex >= 0 ? pendingIndex : locations.findIndex(function(location) { return location.status === 'revisit'; });
+    }
+
+    function updateCurrentStop() {
+      var index = nextActionIndex();
+      document.querySelectorAll('.route-item.active').forEach(function(item) { item.classList.remove('active'); });
+      if (index === -1) {
+        $('current-stop').classList.add('complete');
+        $('current-stop-kicker').textContent = 'Route complete';
+        $('current-stop-title').textContent = 'No pending stops remain';
+        $('current-stop-address').textContent = 'End the route to erase the saved field data, or export a final copy first.';
+        $('current-stop-warning').hidden = true;
+        $('current-stop-actions').hidden = true;
+        $('current-nav-hint').hidden = true;
+        $('mobile-field-bar').hidden = true;
+        return;
+      }
+      var location = locations[index];
+      $('current-stop').classList.remove('complete');
+      $('current-stop-kicker').textContent = 'Next field stop · ' + (index + 1) + ' of ' + locations.length;
+      $('current-stop-title').textContent = parseUPC(location.upc).shortCode + ' · ' + location.upc;
+      $('current-stop-address').textContent = location.situs ? location.situs + (location.city ? ', ' + location.city : '') : 'No situs address';
+      $('current-stop-warning').textContent = location.accessWarning || '';
+      $('current-stop-warning').hidden = !location.accessWarning;
+      $('current-stop-actions').hidden = false;
+      $('current-nav-hint').hidden = false;
+      $('mobile-field-bar').hidden = false;
+      $('mobile-stop-label').textContent = 'Stop ' + (index + 1) + ' · ' + parseUPC(location.upc).shortCode;
+      var activeItem = document.querySelector('.route-item[data-upc="' + location.upc + '"]');
+      if (activeItem) activeItem.classList.add('active');
+    }
+
+    function setStopStatus(index, status, options) {
+      options = options || {};
+      if (!locations[index] || ['pending', 'completed', 'skipped', 'revisit'].indexOf(status) < 0) return;
+      locations[index].status = status;
+      var item = document.querySelector('.route-item[data-upc="' + locations[index].upc + '"]');
+      if (item) {
+        item.classList.remove('pending', 'completed', 'skipped', 'revisit');
+        item.classList.add(status);
+        var select = item.querySelector('.status-select');
+        if (select && select.value !== status) select.value = status;
+      }
+      refreshMarkerStatus(index);
+      updateProgress();
+      updateCurrentStop();
+      scheduleSave();
+      if (options.announceChange) announce('Stop ' + (index + 1) + ' marked ' + statusLabel(status).toLowerCase());
+    }
+
+    function setCurrentStopStatus(status) {
+      var index = nextActionIndex();
+      if (index === -1) return;
+      setStopStatus(index, status, { announceChange: true });
     }
 
     function updateProgress() {
@@ -1147,6 +1396,7 @@
       $('progress-fill').style.width = percent + '%';
       var track = document.querySelector('.progress-track');
       track.setAttribute('aria-valuenow', String(percent));
+      track.setAttribute('aria-valuetext', handled + ' of ' + locations.length + ' handled');
     }
 
     function renderAll() {
@@ -1166,6 +1416,7 @@
       renderRouteList();
       renderRouteButtons();
       updateProgress();
+      updateCurrentStop();
     }
 
     function parseInput(value) {
@@ -1177,7 +1428,7 @@
         if (seen.has(upc)) duplicates.push(upc);
         else { seen.add(upc); unique.push(upc); }
       });
-      var invalid = unique.filter(function(upc) { return !/^[0-9A-Z]{18,30}$/.test(upc); });
+      var invalid = unique.filter(function(upc) { return !UPC_PATTERN.test(upc); });
       return { valid: unique.filter(function(upc) { return invalid.indexOf(upc) === -1; }), invalid: invalid, duplicates: Array.from(new Set(duplicates)) };
     }
 
@@ -1191,16 +1442,25 @@
     }
 
     async function handleSearch() {
+      if (externalConsentRequired() && !externalConsentGranted()) {
+        setNotice('input-notice', 'Allow external-service access for this browser session before building the route.', 'warning');
+        $('external-consent').focus();
+        return;
+      }
       var parsed = parseInput($('upc-input').value);
       lookupIssues = { missing: [], invalid: parsed.invalid, duplicates: parsed.duplicates, noGeometry: [] };
       if (!parsed.valid.length) {
-        setNotice('input-notice', parsed.invalid.length ? 'No valid UPCs remain after validation.' : 'Enter at least one UPC.', 'error');
+        var invalidPreview = parsed.invalid.slice(0, 3).join(', ');
+        setNotice('input-notice', parsed.invalid.length ? 'No valid 18-digit UPCs remain. Check: ' + invalidPreview + (parsed.invalid.length > 3 ? ' and ' + (parsed.invalid.length - 3) + ' more.' : '.') : 'Enter at least one UPC.', 'error');
         updateLookupResults();
         return;
       }
       setSearchBusy(true, 'Looking up parcels…');
       setNotice('input-notice', '', '');
+      optimizationNotice = '';
+      if (lookupController) lookupController.abort();
       var controller = new AbortController();
+      lookupController = controller;
       try {
         await loadUPCsFromGIS(parsed.valid, controller.signal);
         var previous = new Map(locations.map(function(item) { return [item.upc, item]; }));
@@ -1245,12 +1505,17 @@
         setNotice('input-notice', 'Route could not be built: ' + error.message, 'error');
         announce('Route build failed');
       } finally {
+        if (lookupController === controller) lookupController = null;
         setSearchBusy(false);
       }
     }
 
     async function optimizeCurrentRoute() {
       if (locations.length < 2) return;
+      if (externalConsentRequired() && !externalConsentGranted()) {
+        setNotice('route-note', 'Allow external-service access before optimizing the route.', 'warning');
+        return;
+      }
       var controller = new AbortController();
       setRouteBusy(true, 'Optimizing stop order…');
       try {
@@ -1275,9 +1540,12 @@
     }
 
     function serializableRoute() {
+      var savedAt = new Date();
+      var expiry = settings.routeRetention === '24h' ? savedAt.getTime() + 24 * 60 * 60 * 1000 : settings.routeRetention === '7d' ? savedAt.getTime() + 7 * 24 * 60 * 60 * 1000 : null;
       return {
-        schemaVersion: 2,
-        savedAt: new Date().toISOString(),
+        schemaVersion: 3,
+        savedAt: savedAt.toISOString(),
+        expiresAt: expiry ? new Date(expiry).toISOString() : null,
         routeMethod: routeMethod,
         office: OFFICE,
         locations: locations.map(function(item) {
@@ -1299,15 +1567,30 @@
       };
     }
 
+    function routeStorage() { return settings.routeRetention === 'session' ? sessionStorage : localStorage; }
+
+    function clearSavedRoute() {
+      try { sessionStorage.removeItem(STORAGE_KEY); } catch (error) {}
+      try {
+        localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem(LEGACY_STORAGE_KEY);
+      } catch (error) {}
+    }
+
+    function retentionLabel() {
+      return settings.routeRetention === '24h' ? 'for 24 hours' : settings.routeRetention === '7d' ? 'for 7 days' : 'for this browser session';
+    }
+
     function saveRoute() {
       try {
         if (locations.length) {
           var payload = serializableRoute();
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-          $('save-state').textContent = 'Auto-saved on this device at ' + new Date(payload.savedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) + '.';
+          clearSavedRoute();
+          routeStorage().setItem(STORAGE_KEY, JSON.stringify(payload));
+          $('save-state').textContent = 'Auto-saved ' + retentionLabel() + ' at ' + new Date(payload.savedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) + '.';
         } else {
-          localStorage.removeItem(STORAGE_KEY);
-          $('save-state').textContent = 'Routes are automatically saved on this device.';
+          clearSavedRoute();
+          $('save-state').textContent = 'Route data will be saved ' + retentionLabel() + '.';
         }
       } catch (error) {
         $('save-state').textContent = 'This browser blocked local route saving. Export a JSON backup instead.';
@@ -1319,32 +1602,50 @@
       return payload.locations.map(function(item) {
         var upc = cleanUPC(item.upc);
         var lat = Number(item.lat), lng = Number(item.lng);
-        if (!/^[0-9A-Z]{18,30}$/.test(upc) || !Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) throw new Error('A route stop is invalid.');
+        if (!UPC_PATTERN.test(upc) || !Number.isFinite(lat) || !Number.isFinite(lng)) throw new Error('A route stop is invalid.');
+        if (lat < SERVICE_AREA_BOUNDS.minLat || lat > SERVICE_AREA_BOUNDS.maxLat || lng < SERVICE_AREA_BOUNDS.minLng || lng > SERVICE_AREA_BOUNDS.maxLng) throw new Error('A route stop is outside the configured Bernalillo County service area.');
         var status = ['pending', 'completed', 'skipped', 'revisit'].indexOf(item.status) >= 0 ? item.status : 'pending';
+        var centroidLat = Number(item.centroidLat), centroidLng = Number(item.centroidLng), snapDistance = Number(item.snapDistance);
+        if (!Number.isFinite(centroidLat)) centroidLat = lat;
+        if (!Number.isFinite(centroidLng)) centroidLng = lng;
+        if (centroidLat < SERVICE_AREA_BOUNDS.minLat || centroidLat > SERVICE_AREA_BOUNDS.maxLat || centroidLng < SERVICE_AREA_BOUNDS.minLng || centroidLng > SERVICE_AREA_BOUNDS.maxLng) throw new Error('A parcel center is outside the configured service area.');
+        if (item.snapDistance != null && (!Number.isFinite(snapDistance) || snapDistance < 0 || snapDistance > 100000)) throw new Error('A road-snap distance is invalid.');
         return {
           type: 'property', upc: upc, lat: lat, lng: lng,
-          centroidLat: Number.isFinite(Number(item.centroidLat)) ? Number(item.centroidLat) : lat,
-          centroidLng: Number.isFinite(Number(item.centroidLng)) ? Number(item.centroidLng) : lng,
+          centroidLat: centroidLat,
+          centroidLng: centroidLng,
           situs: String(item.situs || '').slice(0, 180), city: String(item.city || '').slice(0, 100),
           status: status, notes: String(item.notes || '').slice(0, 240), snapped: Boolean(item.snapped),
-          snapDistance: item.snapDistance == null ? null : Number(item.snapDistance), accessWarning: String(item.accessWarning || '').slice(0, 240)
+          snapDistance: item.snapDistance == null ? null : snapDistance, accessWarning: String(item.accessWarning || '').slice(0, 240)
         };
       });
     }
 
     function restoreSavedRoute() {
       try {
-        var saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+        var raw = routeStorage().getItem(STORAGE_KEY);
+        var migratedLegacy = false;
+        if (!raw) {
+          raw = localStorage.getItem(LEGACY_STORAGE_KEY);
+          migratedLegacy = Boolean(raw);
+        }
+        var saved = JSON.parse(raw || 'null');
         if (!saved) return;
+        if (saved.expiresAt && new Date(saved.expiresAt).getTime() <= Date.now()) {
+          clearSavedRoute();
+          setNotice('input-notice', 'The previously saved route expired and was removed.', 'info');
+          return;
+        }
         locations = validateImportedRoute(saved);
         routeMethod = String(saved.routeMethod || 'Restored order').slice(0, 60);
         $('upc-input').value = locations.map(function(item) { return item.upc; }).join('\n');
         renderAll();
         updateMap();
-        $('save-state').textContent = 'Restored the last route saved on this device.';
-        setNotice('input-notice', 'Restored ' + locations.length + ' properties from the last saved route.', 'info');
+        if (migratedLegacy) scheduleSave(true);
+        else $('save-state').textContent = 'Restored the route saved ' + retentionLabel() + '.';
+        setNotice('input-notice', 'Restored ' + locations.length + ' properties from saved route data.', 'info');
       } catch (error) {
-        localStorage.removeItem(STORAGE_KEY);
+        clearSavedRoute();
       }
     }
 
@@ -1397,6 +1698,7 @@
         var imported = validateImportedRoute(payload);
         if (!imported.length) throw new Error('The route contains no stops.');
         locations = imported;
+        optimizationNotice = '';
         routeMethod = String(payload.routeMethod || 'Imported order').slice(0, 60);
         $('upc-input').value = locations.map(function(item) { return item.upc; }).join('\n');
         renderAll();
@@ -1413,18 +1715,35 @@
 
     function clearAll() {
       if (locations.length && !window.confirm('Clear the active route and its saved field progress?')) return;
+      resetActiveRoute('Route cleared');
+    }
+
+    function finishRoute() {
+      if (!locations.length) return;
+      var remaining = locations.filter(function(location) { return location.status === 'pending' || location.status === 'revisit'; }).length;
+      var prompt = remaining
+        ? remaining + ' stops still need attention. End this route and erase its saved field data anyway?'
+        : 'End this route and erase its saved field data from this browser?';
+      if (!window.confirm(prompt)) return;
+      resetActiveRoute('Route ended and saved field data erased');
+    }
+
+    function resetActiveRoute(message) {
       locations = [];
+      dataCache = {};
       lookupIssues = { missing: [], invalid: [], duplicates: [], noGeometry: [] };
       routeMethod = 'Manual order';
+      optimizationNotice = '';
       $('upc-input').value = '';
       hide('lookup-results');
       setNotice('input-notice', '', '');
       setNotice('route-note', '', '');
       if (routeController) routeController.abort();
+      if (lookupController) lookupController.abort();
       clearMapLayers();
       renderAll();
       saveRoute();
-      announce('Route cleared');
+      announce(message);
     }
 
     function printItinerary() {
@@ -1439,38 +1758,62 @@
       $('tile-url').value = settings.tileUrl;
       $('tile-attribution').value = settings.tileAttribution;
       $('snap-limit').value = String(settings.snapLimit);
+      $('route-retention').value = settings.routeRetention;
       updateServiceBadge();
+      updatePrivacyGate();
     }
 
     function saveSettings() {
       try {
+        var previousServiceSignature = serviceHost(settings.routerUrl) + '|' + serviceHost(settings.tileUrl);
         var routerUrl = validateServiceURL($('router-url').value, false);
         var tileUrl = validateTileURL($('tile-url').value);
         if (!tileUrl) throw new Error('The tile URL must use HTTPS and include {z}, {x}, and {y}.');
         var attribution = $('tile-attribution').value.trim();
         if (!attribution) throw new Error('Map attribution is required.');
+        var retention = $('route-retention').value;
+        if (['session', '24h', '7d'].indexOf(retention) < 0) throw new Error('Choose a valid route-retention period.');
         settings = {
           routerUrl: routerUrl,
           tileUrl: tileUrl,
           tileAttribution: attribution.slice(0, 180),
-          snapLimit: clamp(Number($('snap-limit').value) || 1600, 50, 5000)
+          snapLimit: clamp(Number($('snap-limit').value) || 1600, 50, 5000),
+          routeRetention: retention
         };
         localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+        localStorage.removeItem(LEGACY_SETTINGS_KEY);
+        var nextServiceSignature = serviceHost(settings.routerUrl) + '|' + serviceHost(settings.tileUrl);
+        if (previousServiceSignature !== nextServiceSignature) {
+          try { sessionStorage.removeItem(CONSENT_KEY); } catch (error) {}
+          if (routeController) routeController.abort();
+          if (map && tileLayer) { map.removeLayer(tileLayer); tileLayer = null; }
+        }
         populateSettings();
-        refreshTileLayer();
+        if (!externalConsentRequired() || externalConsentGranted()) refreshTileLayer();
+        if (locations.length) scheduleSave(true);
         if (locations.length) updateMap();
-        setNotice('settings-notice', 'Service settings saved on this device.', 'success');
+        setNotice('settings-notice', 'Settings saved. Route data will be retained ' + retentionLabel() + '.', 'success');
       } catch (error) {
         setNotice('settings-notice', error.message, 'error');
       }
     }
 
     async function testRouter() {
+      var pendingRouterUrl;
+      try { pendingRouterUrl = validateServiceURL($('router-url').value, false); }
+      catch (error) { setNotice('settings-notice', error.message, 'error'); return; }
+      if (serviceHost(pendingRouterUrl) !== serviceHost(settings.routerUrl)) {
+        setNotice('settings-notice', 'Save the changed service settings and acknowledge the new host before testing it.', 'warning');
+        return;
+      }
+      if (externalConsentRequired() && !externalConsentGranted()) {
+        setNotice('settings-notice', 'Allow external-service access before testing this routing host.', 'warning');
+        return;
+      }
       $('test-router-btn').disabled = true;
       setNotice('settings-notice', 'Testing the configured routing service…', 'info');
       try {
-        var routerUrl = validateServiceURL($('router-url').value, false);
-        var url = routerUrl + '/nearest/v1/driving/' + OFFICE.lng + ',' + OFFICE.lat + '?number=1';
+        var url = pendingRouterUrl + '/nearest/v1/driving/' + OFFICE.lng + ',' + OFFICE.lat + '?number=1';
         var result = await fetchJSON(url, { retries: 0, timeout: 9000 });
         if (result.code !== 'Ok' || !result.waypoints || !result.waypoints[0]) throw new Error('The response was not OSRM-compatible.');
         setNotice('settings-notice', 'Routing service is reachable and OSRM-compatible.', 'success');
@@ -1486,6 +1829,12 @@
       $('clear-btn').addEventListener('click', clearAll);
       $('optimize-btn').addEventListener('click', optimizeCurrentRoute);
       $('next-stop-btn').addEventListener('click', openNextStop);
+      $('mobile-next-stop-btn').addEventListener('click', openNextStop);
+      $('complete-next-btn').addEventListener('click', function() { setCurrentStopStatus('completed'); });
+      $('skip-next-btn').addEventListener('click', function() { setCurrentStopStatus('skipped'); });
+      $('revisit-next-btn').addEventListener('click', function() { setCurrentStopStatus('revisit'); });
+      $('map-toggle-btn').addEventListener('click', function() { setMapVisibility($('map-panel').hidden); });
+      $('finish-route-btn').addEventListener('click', finishRoute);
       $('print-btn').addEventListener('click', printItinerary);
       $('export-csv-btn').addEventListener('click', exportCSV);
       $('export-json-btn').addEventListener('click', exportJSON);
@@ -1494,6 +1843,19 @@
       $('import-file').addEventListener('change', function(event) { importRouteFile(event.target.files && event.target.files[0]); });
       $('save-settings-btn').addEventListener('click', saveSettings);
       $('test-router-btn').addEventListener('click', testRouter);
+      $('external-consent').addEventListener('change', function() {
+        try {
+          if ($('external-consent').checked) sessionStorage.setItem(CONSENT_KEY, 'yes');
+          else sessionStorage.removeItem(CONSENT_KEY);
+        } catch (error) {}
+        updatePrivacyGate();
+        if (!$('external-consent').checked) {
+          if (lookupController) lookupController.abort();
+          if (routeController) routeController.abort();
+          if (map && tileLayer) { map.removeLayer(tileLayer); tileLayer = null; }
+        }
+        if (locations.length) updateMap();
+      });
       $('upc-input').addEventListener('keydown', function(event) {
         if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') handleSearch();
       });
@@ -1503,6 +1865,7 @@
     function init() {
       populateSettings();
       bindEvents();
+      setMapVisibility(true);
       renderAll();
       restoreSavedRoute();
     }
