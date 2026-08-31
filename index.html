@@ -7259,90 +7259,6 @@ function BerncoRouteGroups(stops, statuses, origin = ph, returnToOffice = true) 
     }
     return groups;
 }
-class BerncoGeolocationError extends Error {
-    constructor(reason, message, geolocationCode = null) {
-        super(message);
-        this.name = `BerncoGeolocationError`;
-        this.reason = reason;
-        this.geolocationCode = geolocationCode;
-    }
-}
-function BerncoLocationIssueMessage(error) {
-    switch (error?.reason) {
-        case `denied`:
-            return `Location access is blocked for this page.`;
-        case `unavailable`:
-            return `Your device could not determine its current location.`;
-        case `timeout`:
-            return `The location request timed out.`;
-        case `unsupported`:
-            return `This browser does not provide location services.`;
-        default:
-            return `The browser could not share its current location.`;
-    }
-}
-function BerncoPrepareNavigationWindow(routeLabel) {
-    try {
-        const preparedWindow = window.open(`about:blank`, `_blank`);
-        if (!preparedWindow) return null;
-        try {
-            preparedWindow.opener = null;
-            preparedWindow.document.title = `Preparing ${routeLabel}`;
-            preparedWindow.document.body.textContent = `Reading the current location and preparing Google Maps…`;
-            preparedWindow.document.body.style.fontFamily = `system-ui, sans-serif`;
-            preparedWindow.document.body.style.padding = `2rem`;
-        } catch { }
-        return preparedWindow;
-    } catch {
-        return null;
-    }
-}
-function BerncoCommitNavigation(preparedWindow, url) {
-    if (preparedWindow && !preparedWindow.closed) {
-        try {
-            preparedWindow.location.replace(url);
-            return;
-        } catch {
-            try {
-                preparedWindow.location.href = url;
-                return;
-            } catch { }
-        }
-    }
-    y_(url);
-}
-function BerncoClosePreparedNavigation(preparedWindow) {
-    if (!preparedWindow || preparedWindow.closed) return;
-    try { preparedWindow.close(); } catch { }
-}
-function BerncoCurrentPosition() {
-    return new Promise((resolve, reject) => {
-        if (!navigator.geolocation) {
-            reject(new BerncoGeolocationError(`unsupported`, `This browser does not provide location services.`));
-            return;
-        }
-        navigator.geolocation.getCurrentPosition(
-            position => resolve({ lat: position.coords.latitude, lng: position.coords.longitude, label: `Current location` }),
-            error => {
-                const code = Number(error?.code);
-                if (code === 1) {
-                    reject(new BerncoGeolocationError(`denied`, `Location access is blocked for this page.`, code));
-                    return;
-                }
-                if (code === 2) {
-                    reject(new BerncoGeolocationError(`unavailable`, `Your device could not determine its current location.`, code));
-                    return;
-                }
-                if (code === 3) {
-                    reject(new BerncoGeolocationError(`timeout`, `The location request timed out.`, code));
-                    return;
-                }
-                reject(new BerncoGeolocationError(`unknown`, `The browser could not share its current location.`, Number.isFinite(code) ? code : null));
-            },
-            { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 }
-        );
-    });
-}
 async function Vh(upcs, signal) {
     const features = await BerncoFetchParcelFeatures(upcs, signal);
     const records = new Map();
@@ -7479,6 +7395,9 @@ function rg(e, options = {}) {
     });
     if (!omitOrigin) {
         params.set(`origin`, `${routePoints[0].lat},${routePoints[0].lng}`);
+    }
+    if (options.navigate === true) {
+        params.set(`dir_action`, `navigate`);
     }
     const waypoints = routePoints.slice(omitOrigin ? 0 : 1, -1);
     if (waypoints.length) {
@@ -7947,7 +7866,7 @@ catch {
             this._map.hasLayer(r[a]) || this._map.addLayer(r[a]);
         this._handlingClick = !1, this._refocusOnMap();
     } }, _checkDisabledLayers: function () { for (var e = this._layerControlInputs, t, n, r = this._map.getZoom(), i = e.length - 1; i >= 0; i--)
-        t = e[i], n = this._getLayer(t.layerId).layer, t.disabled = n.options.minZoom !== void 0 && r < n.options.minZoom || n.options.maxZoom !== void 0 && r > n.options.maxZoom; }, _expandIfNotCollapsed: function () { return this._map && !this.options.collapsed && this.expand(), this; }, _expandSafely: function () { var e = this._section; this._preventClick = !0, q(e, `click`, $t), this.expand(); var t = this; setTimeout(function () { Gt(e, `click`, $t), t._preventClick = !1; }); } }), pn = function (e, t, n) { return new fn(e, t, n); }, mn = un.extend({ options: { position: `topleft`, zoomInText: `<span aria-hidden="true">+</span>`, zoomInTitle: `Zoom in`, zoomOutText: `<span aria-hidden="true">&#x2212;</span>`, zoomOutTitle: `Zoom out` }, onAdd: function (e) { var t = `leaflet-control-zoom`, n = U(`div`, t + ` leaflet-bar`), r = this.options; return this._zoomInButton = this._createButton(r.zoomInText, r.zoomInTitle, t + `-in`, n, this._zoomIn), this._zoomOutButton = this._createButton(r.zoomOutText, r.zoomOutTitle, t + `-out`, n, this._zoomOut), this._updateDisabled(), e.on(`zoomend zoomlevelschange`, this._updateDisabled, this), n; }, onRemove: function (e) { e.off(`zoomend zoomlevelschange`, this._updateDisabled, this); }, disable: function () { return this._disabled = !0, this._updateDisabled(), this; }, enable: function () { return this._disabled = !1, this._updateDisabled(), this; }, _zoomIn: function (e) { !this._disabled && this._map._zoom < this._map.getMaxZoom() && this._map.zoomIn(this._map.options.zoomDelta * (e.shiftKey ? 3 : 1)); }, _zoomOut: function (e) { !this._disabled && this._map._zoom > this._map.getMinZoom() && this._map.zoomOut(this._map.options.zoomDelta * (e.shiftKey ? 3 : 1)); }, _createButton: function (e, t, n, r, i) { var a = U(`a`, n, r); return a.innerHTML = e, a.href = `#`, a.title = t, a.setAttribute(`role`, `button`), a.setAttribute(`aria-label`, t), Qt(a), q(a, `click`, en), q(a, `click`, i, this), q(a, `click`, this._refocusOnMap, this), a; }, _updateDisabled: function () { var e = this._map, t = `leaflet-disabled`; Ct(this._zoomInButton, t), Ct(this._zoomOutButton, t), this._zoomInButton.setAttribute(`aria-disabled`, `false`), this._zoomOutButton.setAttribute(`aria-disabled`, `false`), (this._disabled || e._zoom === e.getMinZoom()) && (G(this._zoomOutButton, t), this._zoomOutButton.setAttribute(`aria-disabled`, `true`)), (this._disabled || e._zoom === e.getMaxZoom()) && (G(this._zoomInButton, t), this._zoomInButton.setAttribute(`aria-disabled`, `true`)); } }); J.mergeOptions({ zoomControl: !0 }), J.addInitHook(function () { this.options.zoomControl && (this.zoomControl = new mn, this.addControl(this.zoomControl)); }); var Y = function (e) { return new mn(e); }, hn = un.extend({ options: { position: `bottomleft`, maxWidth: 100, metric: !0, imperial: !0 }, onAdd: function (e) { var t = `leaflet-control-scale`, n = U(`div`, t), r = this.options; return this._addScales(r, t + `-line`, n), e.on(r.updateWhenIdle ? `moveend` : `move`, this._update, this), e.whenReady(this._update, this), n; }, onRemove: function (e) { e.off(this.options.updateWhenIdle ? `moveend` : `move`, this._update, this); }, _addScales: function (e, t, n) { e.metric && (this._mScale = U(`div`, t, n)), e.imperial && (this._iScale = U(`div`, t, n)); }, _update: function () { var e = this._map, t = e.getSize().y / 2, n = e.distance(e.containerPointToLatLng([0, t]), e.containerPointToLatLng([this.options.maxWidth, t])); this._updateScales(n); }, _updateScales: function (e) { this.options.metric && e && this._updateMetric(e), this.options.imperial && e && this._updateImperial(e); }, _updateMetric: function (e) { var t = this._getRoundNum(e), n = t < 1e3 ? t + ` m` : t / 1e3 + ` km`; this._updateScale(this._mScale, n, t / e); }, _updateImperial: function (e) { var t = e * 3.2808399, n, r, i; t > 5280 ? (n = t / 5280, r = this._getRoundNum(n), this._updateScale(this._iScale, r + ` mi`, r / n)) : (i = this._getRoundNum(t), this._updateScale(this._iScale, i + ` ft`, i / t)); }, _updateScale: function (e, t, n) { e.style.width = Math.round(this.options.maxWidth * n) + `px`, e.innerHTML = t; }, _getRoundNum: function (e) { var t = 10 ** ((Math.floor(e) + ``).length - 1), n = e / t; return n = n >= 10 ? 10 : n >= 5 ? 5 : n >= 3 ? 3 : n >= 2 ? 2 : 1, t * n; } }), gn = function (e) { return new hn(e); }, _n = un.extend({ options: { position: `bottomright`, prefix: `<a href="https://leafletjs.com" title="A JavaScript library for interactive maps">` + (V.inlineSvg ? `<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="12" height="8" viewBox="0 0 12 8" class="leaflet-attribution-flag"><path fill="#4C7BE1" d="M0 0h12v4H0z"/><path fill="#FFD500" d="M0 4h12v3H0z"/><path fill="#E0BC00" d="M0 7h12v1H0z"/></svg> ` : ``) + `Leaflet</a>` }, initialize: function (e) { p(this, e), this._attributions = {}; }, onAdd: function (e) { for (var t in e.attributionControl = this, this._container = U(`div`, `leaflet-control-attribution`), Qt(this._container), e._layers)
+        t = e[i], n = this._getLayer(t.layerId).layer, t.disabled = n.options.minZoom !== void 0 && r < n.options.minZoom || n.options.maxZoom !== void 0 && r > n.options.maxZoom; }, _expandIfNotCollapsed: function () { return this._map && !this.options.collapsed && this.expand(), this; }, _expandSafely: function () { var e = this._section; this._preventClick = !0, q(e, `click`, $t), this.expand(); var t = this; setTimeout(function () { Gt(e, `click`, $t), t._preventClick = !1; }); } }), pn = function (e, t, n) { return new fn(e, t, n); }, mn = un.extend({ options: { position: `topleft`, zoomInText: `<span aria-hidden="true">+</span>`, zoomInTitle: `Zoom in`, zoomOutText: `<span aria-hidden="true">&#x2212;</span>`, zoomOutTitle: `Zoom out` }, onAdd: function (e) { var t = `leaflet-control-zoom`, n = U(`div`, t + ` leaflet-bar`), r = this.options; return this._zoomInButton = this._createButton(r.zoomInText, r.zoomInTitle, t + `-in`, n, this._zoomIn), this._zoomOutButton = this._createButton(r.zoomOutText, r.zoomOutTitle, t + `-out`, n, this._zoomOut), this._updateDisabled(), e.on(`zoomend zoomlevelschange`, this._updateDisabled, this), n; }, onRemove: function (e) { e.off(`zoomend zoomlevelschange`, this._updateDisabled, this); }, disable: function () { return this._disabled = !0, this._updateDisabled(), this; }, enable: function () { return this._disabled = !1, this._updateDisabled(), this; }, _zoomIn: function (e) { !this._disabled && this._map._zoom < this._map.getMaxZoom() && this._map.zoomIn(this._map.options.zoomDelta * (e.shiftKey ? 3 : 1)); }, _zoomOut: function (e) { !this._disabled && this._map._zoom > this._map.getMinZoom() && this._map.zoomOut(this._map.options.zoomDelta * (e.shiftKey ? 3 : 1)); }, _createButton: function (e, t, n, r, i) { var a = U(`a`, n, r); return a.innerHTML = e, a.href = `#`, a.title = t, a.setAttribute(`role`, `button`), a.setAttribute(`aria-label`, t), Qt(a), q(a, `click`, en), q(a, `click`, i, this), q(a, `click`, this._refocusOnMap, this), a; }, _updateDisabled: function () { var e = this._map, t = `leaflet-disabled`; Ct(this._zoomInButton, t), Ct(this._zoomOutButton, t), this._zoomInButton.setAttribute(`aria-disabled`, `false`), this._zoomOutButton.setAttribute(`aria-disabled`, `false`), (this._disabled || e._zoom === e.getMinZoom()) && (G(this._zoomOutButton, t), this._zoomOutButton.setAttribute(`aria-disabled`, `true`)), (this._disabled || e._zoom === e.getMaxZoom()) && (G(this._zoomInButton, t), this._zoomInButton.setAttribute(`aria-disabled`, `true`)); } }); J.mergeOptions({ zoomControl: !0 }), J.addInitHook(function () { this.options.zoomControl && (this.zoomControl = new mn, this.addControl(this.zoomControl)); }); var Y = function (e) { return new mn(e); }, hn = un.extend({ options: { position: `bottomleft`, maxWidth: 100, metric: !0, imperial: !0 }, onAdd: function (e) { var t = `leaflet-control-scale`, n = U(`div`, t), r = this.options; return this._addScales(r, t + `-line`, n), e.on(r.updateWhenIdle ? `moveend` : `move`, this._update, this), e.whenReady(this._update, this), n; }, onRemove: function (e) { e.off(this.options.updateWhenIdle ? `moveend` : `move`, this._update, this); }, _addScales: function (e, t, n) { e.metric && (this._mScale = U(`div`, t, n)), e.imperial && (this._iScale = U(`div`, t, n)); }, _update: function () { var e = this._map, t = e.getSize().y / 2, n = e.distance(e.containerPointToLatLng([0, t]), e.containerPointToLatLng([this.options.maxWidth, t])); this._updateScales(n); }, _updateScales: function (e) { this.options.metric && e && this._updateMetric(e), this.options.imperial && e && this._updateImperial(e); }, _updateMetric: function (e) { var t = this._getRoundNum(e), n = t < 1e3 ? t + ` m` : t / 1e3 + ` km`; this._updateScale(this._mScale, n, t / e); }, _updateImperial: function (e) { var t = e * 3.2808399, n, r, i; t > 5280 ? (n = t / 5280, r = this._getRoundNum(n), this._updateScale(this._iScale, r + ` mi`, r / n)) : (i = this._getRoundNum(t), this._updateScale(this._iScale, i + ` ft`, i / t)); }, _updateScale: function (e, t, n) { e.style.width = Math.round(this.options.maxWidth * n) + `px`, e.innerHTML = t; }, _getRoundNum: function (e) { var t = 10 ** ((Math.floor(e) + ``).length - 1), n = e / t; return n = n >= 10 ? 10 : n >= 5 ? 5 : n >= 3 ? 3 : n >= 2 ? 2 : 1, t * n; } }), gn = function (e) { return new hn(e); }, _n = un.extend({ options: { position: `bottomright`, prefix: `<a href="https://leafletjs.com" title="A JavaScript library for interactive maps">Leaflet</a>` }, initialize: function (e) { p(this, e), this._attributions = {}; }, onAdd: function (e) { for (var t in e.attributionControl = this, this._container = U(`div`, `leaflet-control-attribution`), Qt(this._container), e._layers)
         e._layers[t].getAttribution && this.addAttribution(e._layers[t].getAttribution()); return this._update(), e.on(`layeradd`, this._addAttribution, this), this._container; }, onRemove: function (e) { e.off(`layeradd`, this._addAttribution, this); }, _addAttribution: function (e) { e.layer.getAttribution && (this.addAttribution(e.layer.getAttribution()), e.layer.once(`remove`, function () { this.removeAttribution(e.layer.getAttribution()); }, this)); }, setPrefix: function (e) { return this.options.prefix = e, this._update(), this; }, addAttribution: function (e) { return e ? (this._attributions[e] || (this._attributions[e] = 0), this._attributions[e]++, this._update(), this) : this; }, removeAttribution: function (e) { return e && this._attributions[e] && (this._attributions[e]--, this._update()), this; }, _update: function () { if (this._map) {
         var e = [];
         for (var t in this._attributions)
@@ -8789,7 +8708,7 @@ function BerncoRouteCategories({ primaryGroups, revisitGroups, lastCompleted, on
                 ] })] }),
             renderGroupButtons(revisitGroups, `Revisit Route`)
         ] }),
-        (0, x.jsx)(`p`, { className: `resume-location-help`, children: `Current-location resume first asks this browser for your position. If that permission is blocked or unavailable, Google Maps will still open with the starting point left blank so you can choose “Your location” there.` })
+        (0, x.jsx)(`p`, { className: `resume-location-help`, children: `Current-location resume opens Google Maps in navigation mode. Google Maps supplies the live starting location; this standalone planner does not request Location access.` })
     ] });
 }
 function T_() {
@@ -9090,48 +9009,32 @@ function T_() {
     } : stop));
     setAdjustingPoint(false);
     Ue.info(`Navigation point reset to parcel center`);
-}, BerncoResumeRoute = async (category, sourceMode) => {
+}, BerncoResumeRoute = (category, sourceMode) => {
     if (resumeBusy) return;
     const statuses = category === `revisit` ? [`revisit`] : [`pending`];
     const routeLabel = category === `revisit` ? `Revisit Route` : `Primary Route`;
     if (!i.some(stop => statuses.includes(stop.status))) {
-        Ue.info(category === `revisit` ? `No revisit stops remain.` : `No primary-route stops remain.`);
+        Ue.info(category === `revisit` ? `No revisit stops remain.` : `No primary-route stops remain.`, { icon: null });
         return;
     }
-    let preparedWindow = null;
-    let navigationCommitted = false;
     setResumeBusy(true);
     try {
-        let origin = ph;
         if (sourceMode === `current`) {
-            preparedWindow = BerncoPrepareNavigationWindow(routeLabel);
-            try {
-                origin = await BerncoCurrentPosition();
-            } catch (locationError) {
-                const fallbackGroups = BerncoRouteGroups(i, statuses, ph, true);
-                if (!fallbackGroups.length) throw locationError;
-                BerncoCommitNavigation(preparedWindow, rg(fallbackGroups[0], { omitOrigin: true }));
-                navigationCommitted = true;
-                Ue.warning(locationError?.reason === `denied` ? `Location blocked — route opened anyway` : `Location unavailable — route opened anyway`, {
-                    description: `${BerncoLocationIssueMessage(locationError)} ${routeLabel} opened in Google Maps without a fixed starting point. Choose “Your location” in Google Maps. To retry here, allow Location in the browser's site controls.`,
-                    duration: 12000
-                });
-                return;
-            }
+            const groups = BerncoRouteGroups(i, statuses, ph, true);
+            if (!groups.length) throw Error(`No route group could be created.`);
+            y_(rg(groups[0], { omitOrigin: true, navigate: true }));
+            return;
         }
-        if (sourceMode === `last`) {
-            if (!lastCompletedStop) throw Error(`No completed stop is available as a resume location.`);
-            origin = { lat: lastCompletedStop.lat, lng: lastCompletedStop.lng, label: `Last completed stop` };
-        }
+        if (sourceMode !== `last`) throw Error(`Unknown resume location.`);
+        if (!lastCompletedStop) throw Error(`No completed stop is available as a resume location.`);
+        const origin = { lat: lastCompletedStop.lat, lng: lastCompletedStop.lng, label: `Last completed stop` };
         const groups = BerncoRouteGroups(i, statuses, origin, true);
         if (!groups.length) throw Error(`No route group could be created.`);
-        BerncoCommitNavigation(preparedWindow, rg(groups[0]));
-        navigationCommitted = true;
-        Ue.success(`Resume route opened`, { description: `${routeLabel} from ${origin.label || `selected origin`}.` });
+        y_(rg(groups[0]));
+        Ue.success(`Resume route opened`, { description: `${routeLabel} from ${origin.label}.`, icon: null });
     } catch (error) {
-        Ue.error(`Route could not resume`, { description: error instanceof Error ? error.message : `Current location is unavailable.` });
+        Ue.error(`Route could not resume`, { description: error instanceof Error ? error.message : `The route could not be opened.`, icon: null });
     } finally {
-        if (!navigationCommitted) BerncoClosePreparedNavigation(preparedWindow);
         setResumeBusy(false);
     }
 }, Ht = (e, t) => { Ne || B || g !== `all` || t < 0 || t >= i.length || (Et(), a(n => { let r = [...n], [i] = r.splice(e, 1); return r.splice(t, 0, i), r; }), h(`Manual order`), Be(``)); }, Ut = (e, t) => { e.preventDefault(), !(tt == null || tt === t) && (Ht(tt, t), nt(null)); }, q = () => { let e = lt.current; Dt(!e), Re(e ? { message: `This tab was cleared. A newer route saved by another tab was left intact.`, type: `info` } : null), Ue.info(e ? `This tab was cleared; the newer saved route was preserved` : `Route cleared`); }, Wt = () => { if (!i.length && !e)
@@ -9208,15 +9111,70 @@ if (!E_)
 /*$vite$:1*/
 
 
-/* Field Enhancement 6.2: exact Assessor Experience Builder parcel deep links, official parcel polygons, point confirmation, route categories, Field Mode, and resilient current-location fallback */
+/* Field Enhancement 6.3.1: permission-free Google Maps current-location handoff, text-only Leaflet attribution, accessible SVG handling, exact Assessor parcel deep links, official parcel polygons, route categories, and Field Mode */
 .assessor-map-panel--native{min-height:0}.parcel-detail-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.65rem;padding:1rem;border-top:1px solid var(--border)}.parcel-detail-grid div,.selected-parcel-metrics div{background:var(--warm-white);border:1px solid var(--border);border-radius:.65rem;padding:.65rem}.parcel-detail-grid dt,.selected-parcel-metrics dt{color:var(--slate-600);font-size:.7rem;text-transform:uppercase;letter-spacing:.045em}.parcel-detail-grid dd,.selected-parcel-metrics dd{color:var(--navy);font-weight:700;overflow-wrap:anywhere}.map-service-banner{position:absolute;z-index:650;top:.65rem;left:50%;transform:translateX(-50%);max-width:min(90%,48rem);background:#fff8d8;border:2px solid #a16a00;border-radius:.65rem;padding:.45rem .7rem;color:#513600;font-size:.78rem;font-weight:700;box-shadow:0 6px 18px #0002;pointer-events:none}.legend-boundary{display:inline-block;width:1.35rem;height:.8rem;border:3px solid #013942;background:#b9ded866;border-radius:.15rem}.legend-line--revisit{border-top-color:#6f2d56!important;border-top-style:dashed!important}.route-marker--selected{outline:4px solid #fff;box-shadow:0 0 0 7px #7a1f2b,0 8px 18px #0005!important;transform:scale(1.08)}.selected-parcel-panel{border:2px solid #1f6f78;background:linear-gradient(145deg,#f8fffe,#eef7f5);border-radius:.9rem;padding:1rem;display:grid;gap:.85rem}.selected-parcel-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem}.selected-parcel-heading h3{color:var(--navy);font-size:1.15rem;font-weight:800}.selected-parcel-heading p{color:var(--slate-600);font-size:.8rem}.selected-parcel-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.55rem}.selected-parcel-actions{display:flex;flex-wrap:wrap;gap:.5rem}.nav-status{background:#fff3cd!important;border-color:#a16a00!important;color:#513600!important}.nav-status--confirmed{background:#e7f5ec!important;border-color:#20713f!important;color:#164f2d!important}.adjust-point-instruction{display:flex;align-items:center;gap:.5rem;border-left:5px solid #7a1f2b;background:#fff0f2;color:#591721;padding:.7rem;font-weight:700}.route-categories{display:grid;grid-template-columns:1fr 1fr;gap:.85rem;margin-top:.85rem}.route-category{border:1px solid var(--border);border-radius:.85rem;padding:.9rem;background:#fff;display:grid;gap:.75rem}.route-category--primary{border-top:6px solid #013942}.route-category--revisit{border-top:6px solid #6f2d56;background:#fffafd}.route-category header{display:flex;justify-content:space-between;gap:.75rem;align-items:flex-start}.route-category-kicker{font-size:.7rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--slate-600)}.route-category h3{font-size:1.05rem;font-weight:800;color:var(--navy)}.route-category-groups{display:grid;gap:.5rem}.resume-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:.35rem}.resume-location-help{grid-column:1/-1;margin:0;border-left:5px solid #1f6f78;background:#eef8f7;border-radius:.55rem;padding:.7rem .8rem;color:#173f45;font-size:.8rem;line-height:1.45}.route-category-empty{color:var(--slate-600);font-style:italic}.stop-item--selected article{outline:4px solid #1f6f78;outline-offset:1px;background:#f3fffd}.stop-nav-status{display:flex;align-items:center;gap:.35rem;margin-top:.45rem;color:#7a1f2b;font-size:.76rem;font-weight:800}.stop-nav-status--confirmed{color:#1e6c3b}.field-mode-toggle--on{box-shadow:0 0 0 3px #fff8}.field-mode{background:#fff!important;font-size:118%}.field-mode .app-shell{max-width:100%;padding:.75rem}.field-mode .app-masthead{background:#001f2b;border:4px solid #f6c344}.field-mode .app-masthead h1{font-size:clamp(2rem,5vw,3.25rem)}.field-mode [data-slot=button]{min-height:3.35rem;padding:.75rem 1.05rem;font-size:1rem;font-weight:800;border-width:2px}.field-mode [data-slot=select-trigger],.field-mode textarea,.field-mode input{min-height:3.2rem;font-size:1.05rem;border-width:2px}.field-mode .active-stop-card{border:4px solid #013942;box-shadow:0 0 0 5px #f6c344}.field-mode .active-stop-card h2{font-size:clamp(1.55rem,4vw,2.4rem)}.field-mode .stop-item article{border-width:2px}.field-mode .stop-item h3{font-size:1.18rem}.field-mode .status-badge,.field-mode .nav-status{font-size:.95rem;padding:.45rem .7rem}.field-mode .route-map{height:clamp(28rem,62vh,48rem)}.field-mode .mobile-field-bar{border:4px solid #013942;background:#fff}.field-mode .mobile-field-bar strong{font-size:1.05rem}.field-mode .mobile-field-bar span{font-size:.85rem}.field-mode :focus-visible{outline:5px solid #f6c344!important;outline-offset:3px!important}.field-mode .google-disclosure,.field-mode small{font-size:.9rem}.field-mode .selected-parcel-panel{border-width:4px}.field-mode .route-category{border-width:2px;border-top-width:8px}
 @media(max-width:900px){.route-categories{grid-template-columns:1fr}.selected-parcel-metrics,.parcel-detail-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.route-category header{flex-direction:column}.resume-actions{justify-content:flex-start}}
 @media(max-width:580px){.selected-parcel-heading{flex-direction:column}.selected-parcel-metrics,.parcel-detail-grid{grid-template-columns:1fr}.selected-parcel-actions{display:grid;grid-template-columns:1fr}.map-service-banner{top:.45rem;font-size:.7rem}.field-mode{font-size:112%}.field-mode .route-map{height:24rem}}
 @media print{.selected-parcel-panel,.route-categories{display:none!important}.print-itinerary li:has(span:nth-child(2)){border-left:4px solid #333}.print-itinerary span{font-weight:600}.field-mode{font-size:100%}}
 </style>
 <!-- Single-file export. County GIS, maps, routing, and navigation require internet access. -->
-<meta content="6.2-field-enhanced-assessor-deeplink" name="application-version"/><!-- Exact Assessor parcel deep links; native official parcel boundaries; dedicated Primary/Revisit routes; navigation-point confirmation; resilient current-location resume; Field Mode. --></head>
+<meta content="6.3.1-location-svg-fix" name="application-version"/><!-- Permission-free Google Maps current-location handoff; text-only Leaflet attribution; accessible SVG handling; exact Assessor parcel deep links; native official parcel boundaries; dedicated Primary/Revisit routes; navigation-point confirmation; Field Mode. --></head>
 <body>
 <div id="root"></div>
+<script>
+(() => {
+  "use strict";
+  const MAP_LABEL = "Route map with selectable property stops, official parcel boundaries, Primary Route lines, and Revisit Route lines.";
+
+  function apply(root) {
+    const elements = [];
+    if (root && root.nodeType === 1) elements.push(root);
+    if (root && root.querySelectorAll) elements.push(...root.querySelectorAll("svg, .route-map, .leaflet-container"));
+
+    for (const element of elements) {
+      if (element.matches && element.matches(".route-map, .leaflet-container")) {
+        element.setAttribute("role", "region");
+        if (!element.hasAttribute("aria-label")) element.setAttribute("aria-label", MAP_LABEL);
+      }
+      if (element.matches && element.matches("svg")) {
+        const named = element.hasAttribute("aria-label") || element.hasAttribute("aria-labelledby") || Boolean(element.querySelector("title"));
+        if (!named) {
+          element.setAttribute("aria-hidden", "true");
+          element.setAttribute("focusable", "false");
+          element.setAttribute("role", "presentation");
+        }
+      }
+    }
+
+    if (!root || !document.createTreeWalker) return;
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    const removals = [];
+    while (walker.nextNode()) {
+      const node = walker.currentNode;
+      if ((node.nodeValue || "").trim().toLowerCase() !== "svg") continue;
+      const parent = node.parentElement;
+      if (!parent || parent.closest("script, style, svg")) continue;
+      if (parent.closest("[data-icon], [data-sonner-toast], .leaflet-container, .route-map, button, a")) removals.push(node);
+    }
+    for (const node of removals) node.remove();
+  }
+
+  const start = () => {
+    apply(document);
+    const observer = new MutationObserver(records => {
+      for (const record of records) {
+        for (const node of record.addedNodes) {
+          if (node.nodeType === 1) apply(node);
+          else if (node.nodeType === 3) apply(record.target);
+        }
+      }
+    });
+    observer.observe(document.documentElement, { childList: true, subtree: true });
+  };
+
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start, { once: true });
+  else start();
+})();
+</script>
 </body>
 </html>
