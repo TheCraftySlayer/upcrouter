@@ -7417,11 +7417,53 @@ function ig(stop, origin) {
     }
     return `https://www.google.com/maps/dir/?${params.toString()}`;
 }
+// The Assessor Map's parcel data source ID is `<web map item>-<operational layer>-<sublayer>`. The operational
+// layer part changes whenever the county re-adds the layer (it did once: 19d6872415f -> 19e83adb259), which
+// silently breaks every deep link. On load, read the web map's public layer list and follow a re-added layer.
+// The built-in ID is kept unless it is gone from the web map AND exactly one replacement exists.
+var BerncoAssessorLayerStorageKey = `bernco-assessor-layer-v1`;
+function BerncoAssessorLayerReplacement(webMap, layerId) {
+    const match = /^([0-9a-f]{32})-([0-9a-f]+)-layer-(\d+)-(\d+)$/.exec(layerId);
+    if (!match || !webMap || typeof webMap !== `object`) return null;
+    const [, webMapId, timestamp, layerNumber, sublayer] = match;
+    const operationalIds = new Set();
+    const visit = value => {
+        if (Array.isArray(value)) return value.forEach(visit);
+        if (!value || typeof value !== `object`) return;
+        if (typeof value.id === `string`) operationalIds.add(value.id);
+        Object.values(value).forEach(visit);
+    };
+    visit(webMap.operationalLayers);
+    if (!operationalIds.size || operationalIds.has(`${timestamp}-layer-${layerNumber}`)) return null;
+    const candidates = [...operationalIds].filter(id => new RegExp(`^[0-9a-f]+-layer-${layerNumber}$`).test(id));
+    return candidates.length === 1 ? `${webMapId}-${candidates[0]}-${sublayer}` : null;
+}
+async function BerncoResolveAssessorLayer() {
+    try {
+        const cached = sessionStorage.getItem(BerncoAssessorLayerStorageKey);
+        if (cached && /^[0-9a-f]{32}-[0-9a-f]+-layer-\d+-\d+$/.test(cached)) yh = cached;
+    } catch { }
+    const webMapId = yh.slice(0, 32);
+    const portal = new URL(vh).origin + `/portal`;
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => controller.abort(), 15e3);
+    try {
+        const response = await fetch(`${portal}/sharing/rest/content/items/${webMapId}/data?f=json`, { signal: controller.signal, credentials: `omit`, cache: `no-store`, redirect: `error`, referrerPolicy: `no-referrer` });
+        if (!response.ok) return;
+        const replacement = BerncoAssessorLayerReplacement(await response.json(), yh);
+        if (!replacement) return;
+        yh = replacement;
+        try { sessionStorage.setItem(BerncoAssessorLayerStorageKey, replacement); } catch { }
+    } catch { } finally {
+        window.clearTimeout(timer);
+    }
+}
+BerncoResolveAssessorLayer();
 function ag(e) {
     const stop = e && typeof e === `object` ? e : null;
     const upc = String(stop?.upc ?? e ?? ``).replace(/\D/g, ``);
     if (!Ch.test(upc)) throw Error(`An 18-digit UPC is required for the Assessor Map link.`);
-    // Select by UPC, not OBJECTID: the lookup service's OBJECTIDs are not guaranteed to match the Assessor Map's parcel layer.
+    // Select by UPC rather than OBJECTID so links survive the county republishing the parcel layer.
     // zoom_to_selection is required, or the map stays at the countywide view where parcels are not drawn.
     return `${vh}#${new URLSearchParams({ data_s: `where:${yh}:UPC='${upc}'`, zoom_to_selection: `true` }).toString()}`;
 }
@@ -9045,6 +9087,16 @@ function T_() {
             const groups = BerncoRouteGroups(i, statuses, ph, true);
             if (!groups.length) throw Error(`No route group could be created.`);
             y_(rg(groups[0], { omitOrigin: true, navigate: true }));
+            const opened = groups[0].filter(point => point.type === `property`).map(point => point.stopNumber);
+            const remaining = i.filter(stop => statuses.includes(stop.status)).length - opened.length;
+            const openedLabel = opened.length === 1 ? `Stop ${opened[0]}` : `Stops ${opened[0]}–${opened[opened.length - 1]}`;
+            Ue.success(`${routeLabel} opened in Google Maps`, {
+                description: remaining > 0
+                    ? `${openedLabel} from your current location. Google Maps links hold a few stops at a time, so ${remaining} more ${remaining === 1 ? `stop follows` : `stops follow`}: mark these stops here, then use Resume from last completed.`
+                    : `${openedLabel} from your current location${groups[0][groups[0].length - 1].type === `office` ? `, then back to the office` : ``}.`,
+                duration: 10000,
+                icon: null
+            });
             return;
         }
         if (sourceMode !== `last`) throw Error(`Unknown resume location.`);
