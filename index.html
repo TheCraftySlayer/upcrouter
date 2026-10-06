@@ -7517,7 +7517,7 @@ function dg(input) {
         };
     });
 }
-function fg(e) { let t = String(e ?? ``); return /^[\u0000-\u0020]*[=+\-@]/.test(t) && (t = `'${t}`), `"${t.replace(/"/g, `""`)}"`; }
+function fg(e) { let t = String(e ?? ``); return !/^-?\d+(\.\d+)?$/.test(t) && /^[\u0000-\u0020]*[=+\-@]/.test(t) && (t = `'${t}`), `"${t.replace(/"/g, `""`)}"`; }
 function pg(e, t, n) { let r = new Blob([t], { type: n }), i = URL.createObjectURL(r), a = document.createElement(`a`); a.href = i, a.download = e, document.body.appendChild(a), a.click(), a.remove(), window.setTimeout(() => URL.revokeObjectURL(i), 1e3); }
 function mg() { let e = new Date; return [e.getFullYear(), String(e.getMonth() + 1).padStart(2, `0`), String(e.getDate()).padStart(2, `0`)].join(`-`); }
 function hg(e) { return e.situs ? `${e.situs}${e.city ? `, ${e.city}` : ``}` : `No situs address`; }
@@ -8395,7 +8395,10 @@ function wg({ stops, settings, consentGranted, visible, onMetrics, onWarning, se
     const [loading, setLoading] = (0, _.useState)(false);
     const [failed, setFailed] = (0, _.useState)(false);
     const [retry, setRetry] = (0, _.useState)(0);
+    const viewRef = (0, _.useRef)(null);
+    const routeCacheRef = (0, _.useRef)(new Map());
     return (0, _.useEffect)(() => {
+        if (!stops.length) viewRef.current = null;
         if (!visible || !containerRef.current || !stops.length) {
             onMetrics({ distance: `—`, duration: `—`, estimated: false });
             return;
@@ -8488,7 +8491,20 @@ function wg({ stops, settings, consentGranted, visible, onMetrics, onWarning, se
                     }
                     bounds.extend([stop.lat, stop.lng]);
                 });
-                map.fitBounds(bounds, { padding: [34, 34], maxZoom: 16, animate: false });
+                // Selecting, confirming, or re-statusing a stop rebuilds the map; keep the user's view unless the set of parcels changed.
+                const viewKey = stops.map(stop => stop.upc).sort().join(`,`);
+                const savedView = viewRef.current;
+                if (savedView && savedView.key === viewKey) map.setView(savedView.center, savedView.zoom, { animate: false });
+                else map.fitBounds(bounds, { padding: [34, 34], maxZoom: 16, animate: false });
+                const selectedStop = stops.find(stop => stop.upc === selectedUpc);
+                if (selectedStop && adjusting) {
+                    map.setView([selectedStop.lat, selectedStop.lng], Math.max(map.getZoom(), 17), { animate: false });
+                } else if (selectedStop && savedView?.selectedUpc !== selectedUpc && !map.getBounds().contains([selectedStop.lat, selectedStop.lng])) {
+                    map.panTo([selectedStop.lat, selectedStop.lng], { animate: false });
+                }
+                const saveView = () => { viewRef.current = { key: viewKey, center: map.getCenter(), zoom: map.getZoom(), selectedUpc }; };
+                saveView();
+                map.on(`moveend`, saveView);
 
                 if (!consentGranted) {
                     onMetrics({ distance: `—`, duration: `—`, estimated: false });
@@ -8513,7 +8529,14 @@ function wg({ stops, settings, consentGranted, visible, onMetrics, onWarning, se
                 for (const category of categories) {
                     const points = [ph, ...category.stops, ph].map(point => [point.lat, point.lng]);
                     try {
-                        const route = await $h(points, settings, controller.signal, [200, ...category.stops.map(stop => stop.snapped || stop.manualPoint ? 50 : settings.snapLimit), 200]);
+                        const radiuses = [200, ...category.stops.map(stop => stop.snapped || stop.manualPoint ? 50 : settings.snapLimit), 200];
+                        const routeKey = JSON.stringify([settings.routerUrl, points, radiuses]);
+                        let route = routeCacheRef.current.get(routeKey);
+                        if (!route) {
+                            route = await $h(points, settings, controller.signal, radiuses);
+                            routeCacheRef.current.set(routeKey, route);
+                            if (routeCacheRef.current.size > 24) routeCacheRef.current.delete(routeCacheRef.current.keys().next().value);
+                        }
                         if (disposed || !map) return;
                         L.polyline(route.geometry, { color: category.color, weight: 9, opacity: .88, dashArray: category.dashArray }).addTo(map);
                         L.polyline(route.geometry, { color: category.accent, weight: 5, opacity: .9, dashArray: category.dashArray }).addTo(map);
@@ -8640,6 +8663,8 @@ function S_(input) {
             notes: String(stop.notes || ``).slice(0, 240),
             lat: Number(stop.lat), lng: Number(stop.lng),
             manualPoint: !!stop.manualPoint,
+            snapped: !stop.manualPoint && stop.snapped === true,
+            accessWarning: String(stop.accessWarning || ``).slice(0, 240),
             navConfirmed: !!stop.navConfirmed,
             navUpdatedAt: stop.navUpdatedAt || null,
             statusUpdatedAt: stop.statusUpdatedAt || null,
@@ -9068,7 +9093,7 @@ function T_() {
             let s = r.filter(e => !a.has(e.upc));
             if (s.length)
                 throw Error(`${s.length} backup ${s.length === 1 ? `UPC could` : `UPCs could`} not be revalidated against County GIS${o.size ? ` because usable parcel geometry was unavailable` : ``}. No route data was replaced.`);
-            let c = x_(r.map(e => { const fresh = a.get(e.upc); const manualValid = e.manualPoint && Number.isFinite(e.lat) && Number.isFinite(e.lng) && e.lat >= wh.minLat && e.lat <= wh.maxLat && e.lng >= wh.minLng && e.lng <= wh.maxLng; return { ...fresh, status: e.status, notes: e.notes, ...(manualValid ? { lat: e.lat, lng: e.lng, manualPoint: true, snapped: false, snapDistance: Wh({ lat: fresh.centroidLat, lng: fresh.centroidLng }, { lat: e.lat, lng: e.lng }) } : {}), navConfirmed: e.navConfirmed, navUpdatedAt: e.navUpdatedAt, statusUpdatedAt: e.statusUpdatedAt, completedAt: e.completedAt }; })), l = String(e.sourceInput || c.map(e => e.upc).join(`
+            let c = x_(r.map(e => { const fresh = a.get(e.upc); const pointValid = Number.isFinite(e.lat) && Number.isFinite(e.lng) && e.lat >= wh.minLat && e.lat <= wh.maxLat && e.lng >= wh.minLng && e.lng <= wh.maxLng; const pointDistance = pointValid ? Wh({ lat: fresh.centroidLat, lng: fresh.centroidLng }, { lat: e.lat, lng: e.lng }) : null; const manualValid = e.manualPoint && pointValid; const snappedValid = !e.manualPoint && e.snapped && pointValid && pointDistance <= fe.snapLimit; const keepsSavedPoint = manualValid || snappedValid || (!e.manualPoint && !e.snapped && pointValid && pointDistance < 1); return { ...fresh, status: e.status, notes: e.notes, ...(manualValid ? { lat: e.lat, lng: e.lng, manualPoint: true, snapped: false, snapDistance: pointDistance } : {}), ...(snappedValid ? { lat: e.lat, lng: e.lng, manualPoint: false, snapped: true, snapDistance: pointDistance, accessWarning: String(e.accessWarning || ``) } : {}), navConfirmed: keepsSavedPoint && e.navConfirmed, navUpdatedAt: keepsSavedPoint ? e.navUpdatedAt : null, statusUpdatedAt: e.statusUpdatedAt, completedAt: e.completedAt }; })), l = String(e.sourceInput || c.map(e => e.upc).join(`
 `)).slice(0, 3e4), u = ug(e.lookupIssues), d = () => Xt(c, `Imported order · GIS revalidated`, l, u);
             i.length ? kt(`Replace the active route with this backup?`, `The imported file contains ${c.length} properties. It will replace the current ${i.length}-property route and its saved progress.`, `Import and replace`, !0, d) : d();
         }
