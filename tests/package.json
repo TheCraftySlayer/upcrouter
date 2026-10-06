@@ -1,0 +1,11 @@
+{
+  "name": "upcrouter-tests",
+  "private": true,
+  "description": "Browser tests for index.html with County GIS, OSRM, and map tiles mocked.",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1"
+  }
+}
