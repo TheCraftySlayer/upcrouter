@@ -7141,7 +7141,7 @@ var Fp = Ep, Ip = Op, Lp = Ap, Rp = Mp, zp = (e, t) => { let n = Array(e.length 
 function uh(...e) { return lh(at(e)); }
 var dh = ct(`inline-flex shrink-0 items-center justify-center gap-2 rounded-md text-sm font-medium whitespace-nowrap transition-all outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4`, { variants: { variant: { default: `bg-primary text-primary-foreground hover:bg-primary/90`, destructive: `bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:bg-destructive/60 dark:focus-visible:ring-destructive/40`, outline: `border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50`, secondary: `bg-secondary text-secondary-foreground hover:bg-secondary/80`, ghost: `hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50`, link: `text-primary underline-offset-4 hover:underline` }, size: { default: `h-9 px-4 py-2 has-[>svg]:px-3`, xs: `h-6 gap-1 rounded-md px-2 text-xs has-[>svg]:px-1.5 [&_svg:not([class*='size-'])]:size-3`, sm: `h-8 gap-1.5 rounded-md px-3 has-[>svg]:px-2.5`, lg: `h-10 rounded-md px-6 has-[>svg]:px-4`, icon: `size-9`, "icon-xs": `size-6 rounded-md [&_svg:not([class*='size-'])]:size-3`, "icon-sm": `size-8`, "icon-lg": `size-10` } }, defaultVariants: { variant: `default`, size: `default` } });
 function fh({ className: e, variant: t = `default`, size: n = `default`, asChild: r = !1, ...i }) { return (0, x.jsx)(r ? ap : `button`, { "data-slot": `button`, "data-variant": t, "data-size": n, className: uh(dh({ variant: t, size: n, className: e })), ...i }); }
-var ph = { lat: 35.08302237882336, lng: -106.65286131510351, label: `Bernalillo County Assessor's Office` }, mh = `https://assessormap.bernco.gov/server/rest/services/GIS/Assessor_Parcels_Public/MapServer/0/query`, hh = `https://router.project-osrm.org`, gh = `https://tile.openstreetmap.org/{z}/{x}/{y}.png`, _h = `© OpenStreetMap contributors`, vh = `https://assessormap.bernco.gov/portal/apps/experiencebuilder/experience/?id=9757f76e51d048d393c44d6487771bf7`, yh = `f0093002972e4f1e823c0368ea06cf75-19d6872415f-layer-9-1`, bh = `bernco-property-route-planner-v6`, xh = `bernco-property-route-settings-v4`, Sh = `bernco-property-route-external-consent-v3`, Ch = /^\d{18}$/, wh = { minLat: 34.6, maxLat: 35.5, minLng: -107.5, maxLng: -105.9 }, Th = { "066": `A`, "065": `B`, "064": `C`, "063": `D`, "062": `E`, "061": `F`, "060": `G`, "059": `H`, "058": `J`, "057": `K`, "056": `L`, "055": `M`, "054": `N`, "053": `P`, "052": `Q`, "051": `R`, "050": `S`, "049": `T`, "048": `U`, "047": `V`, "046": `W`, "045": `X`, "044": `Y`, "043": `Z` }, Eh = class extends Error {
+var ph = { lat: 35.08302237882336, lng: -106.65286131510351, label: `Bernalillo County Assessor's Office` }, mh = `https://assessormap.bernco.gov/server/rest/services/GIS/Assessor_Parcels_Public/MapServer/0/query`, hh = `https://router.project-osrm.org`, gh = `https://tile.openstreetmap.org/{z}/{x}/{y}.png`, _h = `© OpenStreetMap contributors`, vh = `https://assessormap.bernco.gov/portal/apps/experiencebuilder/experience/?id=9757f76e51d048d393c44d6487771bf7`, yh = `f0093002972e4f1e823c0368ea06cf75-19e83adb259-layer-9-1`, bh = `bernco-property-route-planner-v6`, xh = `bernco-property-route-settings-v4`, Sh = `bernco-property-route-external-consent-v3`, Ch = /^\d{18}$/, wh = { minLat: 34.6, maxLat: 35.5, minLng: -107.5, maxLng: -105.9 }, Th = { "066": `A`, "065": `B`, "064": `C`, "063": `D`, "062": `E`, "061": `F`, "060": `G`, "059": `H`, "058": `J`, "057": `K`, "056": `L`, "055": `M`, "054": `N`, "053": `P`, "052": `Q`, "051": `R`, "050": `S`, "049": `T`, "048": `U`, "047": `V`, "046": `W`, "045": `X`, "044": `Y`, "043": `Z` }, Eh = class extends Error {
     constructor(e) { super(`HTTP ${e}`), this.name = `HTTPError`, this.status = e; }
 };
 function Dh() { return { routerUrl: hh, tileUrl: gh, tileAttribution: _h, snapLimit: 500, routeRetention: `session` }; }
@@ -7421,11 +7421,8 @@ function ag(e) {
     const stop = e && typeof e === `object` ? e : null;
     const upc = String(stop?.upc ?? e ?? ``).replace(/\D/g, ``);
     if (!Ch.test(upc)) throw Error(`An 18-digit UPC is required for the Assessor Map link.`);
-    const cachedFeature = typeof BerncoParcelGeometryCache !== `undefined` ? BerncoParcelGeometryCache.get(upc) : null;
-    const objectId = Number(stop?.objectId ?? cachedFeature?.properties?.OBJECTID ?? cachedFeature?.id);
-    if (Number.isInteger(objectId) && objectId > 0) {
-        return `${vh}#${new URLSearchParams({ data_s: `id:${yh}:${objectId}` }).toString()}`;
-    }
+    // Select by UPC, not OBJECTID: the lookup service's OBJECTIDs are not guaranteed to match the Assessor Map's parcel layer.
+    // zoom_to_selection is required, or the map stays at the countywide view where parcels are not drawn.
     return `${vh}#${new URLSearchParams({ data_s: `where:${yh}:UPC='${upc}'`, zoom_to_selection: `true` }).toString()}`;
 }
 function og(e) { let t = new URL(e ? ag(e) : vh); return t.searchParams.set(`disable_window_focus`, `true`), t.toString(); }
@@ -7517,7 +7514,7 @@ function dg(input) {
         };
     });
 }
-function fg(e) { let t = String(e ?? ``); return /^[\u0000-\u0020]*[=+\-@]/.test(t) && (t = `'${t}`), `"${t.replace(/"/g, `""`)}"`; }
+function fg(e) { let t = String(e ?? ``); return !/^-?\d+(\.\d+)?$/.test(t) && /^[\u0000-\u0020]*[=+\-@]/.test(t) && (t = `'${t}`), `"${t.replace(/"/g, `""`)}"`; }
 function pg(e, t, n) { let r = new Blob([t], { type: n }), i = URL.createObjectURL(r), a = document.createElement(`a`); a.href = i, a.download = e, document.body.appendChild(a), a.click(), a.remove(), window.setTimeout(() => URL.revokeObjectURL(i), 1e3); }
 function mg() { let e = new Date; return [e.getFullYear(), String(e.getMonth() + 1).padStart(2, `0`), String(e.getDate()).padStart(2, `0`)].join(`-`); }
 function hg(e) { return e.situs ? `${e.situs}${e.city ? `, ${e.city}` : ``}` : `No situs address`; }
@@ -8395,7 +8392,10 @@ function wg({ stops, settings, consentGranted, visible, onMetrics, onWarning, se
     const [loading, setLoading] = (0, _.useState)(false);
     const [failed, setFailed] = (0, _.useState)(false);
     const [retry, setRetry] = (0, _.useState)(0);
+    const viewRef = (0, _.useRef)(null);
+    const routeCacheRef = (0, _.useRef)(new Map());
     return (0, _.useEffect)(() => {
+        if (!stops.length) viewRef.current = null;
         if (!visible || !containerRef.current || !stops.length) {
             onMetrics({ distance: `—`, duration: `—`, estimated: false });
             return;
@@ -8488,7 +8488,20 @@ function wg({ stops, settings, consentGranted, visible, onMetrics, onWarning, se
                     }
                     bounds.extend([stop.lat, stop.lng]);
                 });
-                map.fitBounds(bounds, { padding: [34, 34], maxZoom: 16, animate: false });
+                // Selecting, confirming, or re-statusing a stop rebuilds the map; keep the user's view unless the set of parcels changed.
+                const viewKey = stops.map(stop => stop.upc).sort().join(`,`);
+                const savedView = viewRef.current;
+                if (savedView && savedView.key === viewKey) map.setView(savedView.center, savedView.zoom, { animate: false });
+                else map.fitBounds(bounds, { padding: [34, 34], maxZoom: 16, animate: false });
+                const selectedStop = stops.find(stop => stop.upc === selectedUpc);
+                if (selectedStop && adjusting) {
+                    map.setView([selectedStop.lat, selectedStop.lng], Math.max(map.getZoom(), 17), { animate: false });
+                } else if (selectedStop && savedView?.selectedUpc !== selectedUpc && !map.getBounds().contains([selectedStop.lat, selectedStop.lng])) {
+                    map.panTo([selectedStop.lat, selectedStop.lng], { animate: false });
+                }
+                const saveView = () => { viewRef.current = { key: viewKey, center: map.getCenter(), zoom: map.getZoom(), selectedUpc }; };
+                saveView();
+                map.on(`moveend`, saveView);
 
                 if (!consentGranted) {
                     onMetrics({ distance: `—`, duration: `—`, estimated: false });
@@ -8513,7 +8526,14 @@ function wg({ stops, settings, consentGranted, visible, onMetrics, onWarning, se
                 for (const category of categories) {
                     const points = [ph, ...category.stops, ph].map(point => [point.lat, point.lng]);
                     try {
-                        const route = await $h(points, settings, controller.signal, [200, ...category.stops.map(stop => stop.snapped || stop.manualPoint ? 50 : settings.snapLimit), 200]);
+                        const radiuses = [200, ...category.stops.map(stop => stop.snapped || stop.manualPoint ? 50 : settings.snapLimit), 200];
+                        const routeKey = JSON.stringify([settings.routerUrl, points, radiuses]);
+                        let route = routeCacheRef.current.get(routeKey);
+                        if (!route) {
+                            route = await $h(points, settings, controller.signal, radiuses);
+                            routeCacheRef.current.set(routeKey, route);
+                            if (routeCacheRef.current.size > 24) routeCacheRef.current.delete(routeCacheRef.current.keys().next().value);
+                        }
                         if (disposed || !map) return;
                         L.polyline(route.geometry, { color: category.color, weight: 9, opacity: .88, dashArray: category.dashArray }).addTo(map);
                         L.polyline(route.geometry, { color: category.accent, weight: 5, opacity: .9, dashArray: category.dashArray }).addTo(map);
@@ -8640,6 +8660,8 @@ function S_(input) {
             notes: String(stop.notes || ``).slice(0, 240),
             lat: Number(stop.lat), lng: Number(stop.lng),
             manualPoint: !!stop.manualPoint,
+            snapped: !stop.manualPoint && stop.snapped === true,
+            accessWarning: String(stop.accessWarning || ``).slice(0, 240),
             navConfirmed: !!stop.navConfirmed,
             navUpdatedAt: stop.navUpdatedAt || null,
             statusUpdatedAt: stop.statusUpdatedAt || null,
@@ -9068,7 +9090,7 @@ function T_() {
             let s = r.filter(e => !a.has(e.upc));
             if (s.length)
                 throw Error(`${s.length} backup ${s.length === 1 ? `UPC could` : `UPCs could`} not be revalidated against County GIS${o.size ? ` because usable parcel geometry was unavailable` : ``}. No route data was replaced.`);
-            let c = x_(r.map(e => { const fresh = a.get(e.upc); const manualValid = e.manualPoint && Number.isFinite(e.lat) && Number.isFinite(e.lng) && e.lat >= wh.minLat && e.lat <= wh.maxLat && e.lng >= wh.minLng && e.lng <= wh.maxLng; return { ...fresh, status: e.status, notes: e.notes, ...(manualValid ? { lat: e.lat, lng: e.lng, manualPoint: true, snapped: false, snapDistance: Wh({ lat: fresh.centroidLat, lng: fresh.centroidLng }, { lat: e.lat, lng: e.lng }) } : {}), navConfirmed: e.navConfirmed, navUpdatedAt: e.navUpdatedAt, statusUpdatedAt: e.statusUpdatedAt, completedAt: e.completedAt }; })), l = String(e.sourceInput || c.map(e => e.upc).join(`
+            let c = x_(r.map(e => { const fresh = a.get(e.upc); const pointValid = Number.isFinite(e.lat) && Number.isFinite(e.lng) && e.lat >= wh.minLat && e.lat <= wh.maxLat && e.lng >= wh.minLng && e.lng <= wh.maxLng; const pointDistance = pointValid ? Wh({ lat: fresh.centroidLat, lng: fresh.centroidLng }, { lat: e.lat, lng: e.lng }) : null; const manualValid = e.manualPoint && pointValid; const snappedValid = !e.manualPoint && e.snapped && pointValid && pointDistance <= fe.snapLimit; const keepsSavedPoint = manualValid || snappedValid || (!e.manualPoint && !e.snapped && pointValid && pointDistance < 1); return { ...fresh, status: e.status, notes: e.notes, ...(manualValid ? { lat: e.lat, lng: e.lng, manualPoint: true, snapped: false, snapDistance: pointDistance } : {}), ...(snappedValid ? { lat: e.lat, lng: e.lng, manualPoint: false, snapped: true, snapDistance: pointDistance, accessWarning: String(e.accessWarning || ``) } : {}), navConfirmed: keepsSavedPoint && e.navConfirmed, navUpdatedAt: keepsSavedPoint ? e.navUpdatedAt : null, statusUpdatedAt: e.statusUpdatedAt, completedAt: e.completedAt }; })), l = String(e.sourceInput || c.map(e => e.upc).join(`
 `)).slice(0, 3e4), u = ug(e.lookupIssues), d = () => Xt(c, `Imported order · GIS revalidated`, l, u);
             i.length ? kt(`Replace the active route with this backup?`, `The imported file contains ${c.length} properties. It will replace the current ${i.length}-property route and its saved progress.`, `Import and replace`, !0, d) : d();
         }
