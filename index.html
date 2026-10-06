@@ -7421,11 +7421,8 @@ function ag(e) {
     const stop = e && typeof e === `object` ? e : null;
     const upc = String(stop?.upc ?? e ?? ``).replace(/\D/g, ``);
     if (!Ch.test(upc)) throw Error(`An 18-digit UPC is required for the Assessor Map link.`);
-    const cachedFeature = typeof BerncoParcelGeometryCache !== `undefined` ? BerncoParcelGeometryCache.get(upc) : null;
-    const objectId = Number(stop?.objectId ?? cachedFeature?.properties?.OBJECTID ?? cachedFeature?.id);
-    if (Number.isInteger(objectId) && objectId > 0) {
-        return `${vh}#${new URLSearchParams({ data_s: `id:${yh}:${objectId}` }).toString()}`;
-    }
+    // Select by UPC, not OBJECTID: the lookup service's OBJECTIDs are not guaranteed to match the Assessor Map's parcel layer.
+    // zoom_to_selection is required, or the map stays at the countywide view where parcels are not drawn.
     return `${vh}#${new URLSearchParams({ data_s: `where:${yh}:UPC='${upc}'`, zoom_to_selection: `true` }).toString()}`;
 }
 function og(e) { let t = new URL(e ? ag(e) : vh); return t.searchParams.set(`disable_window_focus`, `true`), t.toString(); }
