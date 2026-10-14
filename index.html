@@ -8863,6 +8863,30 @@ function BerncoRouteCategories({ primaryGroups, revisitGroups, primaryDay, lastC
         (0, x.jsx)(`p`, { className: `resume-location-help`, children: `Current-location resume opens Google Maps in navigation mode. Google Maps supplies the live starting location; this standalone planner does not request Location access.` })
     ] });
 }
+// Link intake: "#upcs=<UPC>,<UPC>" (for example from the A.C.E.S. UPC_Router_Link tool)
+// fills the UPC box once startup restore has finished. The list is read once and removed
+// from the address bar so a refresh doesn't re-import it. Nothing is looked up until staff
+// press Build route, so the public-services consent step and the "Replace the active
+// route?" prompt work as usual. The hash never leaves the browser, so UPC lists don't
+// reach the web server's logs.
+const BerncoLinkedUpcLimit = 150;
+let BerncoLinkedUpcsTaken = false;
+function BerncoTakeLinkedUpcs() {
+    if (BerncoLinkedUpcsTaken) return [];
+    BerncoLinkedUpcsTaken = true;
+    let raw = ``;
+    try {
+        const hash = window.location.hash.replace(/^#/, ``);
+        if (!hash) return [];
+        raw = new URLSearchParams(hash).get(`upcs`) || ``;
+        if (!raw) return [];
+        window.history.replaceState(null, ``, window.location.pathname + window.location.search);
+    }
+    catch {
+        return [];
+    }
+    return raw.split(/[,;\s]+/).map(value => value.trim()).filter(Boolean).slice(0, BerncoLinkedUpcLimit);
+}
 function T_() {
     let [e, t] = (0, _.useState)(``), [n, r] = (0, _.useState)(``), [i, a] = (0, _.useState)([]), [o, s] = (0, _.useState)(p_), [c, l] = (0, _.useState)(p_), [u, d] = (0, _.useState)(!1), [f, p] = (0, _.useState)(0), [m, h] = (0, _.useState)(`Input order`), [g, v] = (0, _.useState)(`all`), [y, b] = (0, _.useState)(!1), [C, w] = (0, _.useState)(!0), [T, E] = (0, _.useState)(!1), [ee, D] = (0, _.useState)(!0), [te, O] = (0, _.useState)(`route`), [k, A] = (0, _.useState)(!1), [P, oe] = (0, _.useState)(!1), [fe, De] = (0, _.useState)(Dh), [Oe, ke] = (0, _.useState)(`500`), [Ae, je] = (0, _.useState)(`session`), [B, Me] = (0, _.useState)(!1), [Ne, Pe] = (0, _.useState)(!1), [Fe, Ie] = (0, _.useState)(``), [Le, Re] = (0, _.useState)(null), [ze, Be] = (0, _.useState)(``), [Ve, He] = (0, _.useState)(``), [We, Ge] = (0, _.useState)({ distance: `—`, duration: `—`, estimated: !1 }), [Ke, qe] = (0, _.useState)(`Route data is kept for this browser session.`), [Je, V] = (0, _.useState)([]), [Ye, Xe] = (0, _.useState)(void 0), [Ze, Qe] = (0, _.useState)(!1), [$e, et] = (0, _.useState)(!1), [tt, nt] = (0, _.useState)(null), [rt, it] = (0, _.useState)({ open: !1, title: ``, description: ``, actionLabel: `Continue`, destructive: !1 }), at = (0, _.useRef)(null), ot = (0, _.useRef)(null), st = (0, _.useRef)(null), ct = (0, _.useRef)(new Map), lt = (0, _.useRef)(!1), ut = (0, _.useRef)(!1), dt = (0, _.useRef)(null), ft = (0, _.useRef)([]), pt = (0, _.useRef)({ stops: i, routeMethod: m, routeRetention: fe.routeRetention, routeSourceInput: n, routeIssues: c, routeExpiresAt: Ye }), mt = (0, _.useRef)({ revision: 0, controller: null }), [selectedUpc, setSelectedUpc] = (0, _.useState)(null), [adjustingPoint, setAdjustingPoint] = (0, _.useState)(false), [fieldMode, setFieldMode] = (0, _.useState)(() => { try { return sessionStorage.getItem(`bernco-property-route-field-mode-v1`) === `yes`; } catch { return false; } }), [resumeBusy, setResumeBusy] = (0, _.useState)(false), [stopsPerDay, setStopsPerDay] = (0, _.useState)(`25`);
     (0, _.useLayoutEffect)(() => { pt.current = { stops: i, routeMethod: m, routeRetention: fe.routeRetention, routeSourceInput: n, routeIssues: c, routeExpiresAt: Ye }; }, [Ye, c, m, n, fe.routeRetention, i]);
@@ -8934,7 +8958,21 @@ function T_() {
                 De(n), ke(String(n.snapLimit)), je(n.routeRetention), Re({ message: `Browser storage is unavailable. The planner can still run, but route progress will not persist after this page closes.`, type: `warning` }), et(!0);
             }
         }), () => { e = !0; };
-    }, []), (0, _.useEffect)(() => { if (!$e)
+    }, []), (0, _.useEffect)(() => {
+        if (!$e) return;
+        const linked = BerncoTakeLinkedUpcs();
+        if (!linked.length) return;
+        const count = `${linked.length} ${linked.length === 1 ? `UPC` : `UPCs`}`;
+        if (Ze) {
+            Re({ message: `This link's ${count} were not loaded because a legacy saved route is waiting to be rebuilt. Rebuild or discard it, then open the link again.`, type: `warning` });
+            return;
+        }
+        t(linked.join(`\n`));
+        Re({ message: i.length
+                ? `Opened from a link with ${count}. They're in the UPC box; your saved ${i.length}-property route stays open until you press Build route.`
+                : `Opened from a link with ${count}. Review them, then press Build route.`, type: `info` });
+        window.setTimeout(() => document.getElementById(`upc-input`)?.focus(), 0);
+    }, [$e]), (0, _.useEffect)(() => { if (!$e)
         return; let e = window.setTimeout(() => { if (!i.length) {
         if (ut.current) {
             qe(`Legacy backup preserved. Rebuild the listed UPCs to create a GIS-revalidated route.`);
@@ -9352,7 +9390,7 @@ if (!E_)
 @media print{.selected-parcel-panel,.route-categories{display:none!important}.print-itinerary li:has(span:nth-child(2)){border-left:4px solid #333}.print-itinerary span{font-weight:600}.field-mode{font-size:100%}}
 </style>
 <!-- Single-file export. County GIS, maps, routing, and navigation require internet access. -->
-<meta content="6.3.1-location-svg-fix" name="application-version"/><!-- Permission-free Google Maps current-location handoff; text-only Leaflet attribution; accessible SVG handling; exact Assessor parcel deep links; native official parcel boundaries; dedicated Primary/Revisit routes; navigation-point confirmation; Field Mode. --></head>
+<meta content="6.4.0-link-intake" name="application-version"/><!-- Permission-free Google Maps current-location handoff; text-only Leaflet attribution; accessible SVG handling; exact Assessor parcel deep links; native official parcel boundaries; dedicated Primary/Revisit routes; navigation-point confirmation; Field Mode. --></head>
 <body>
 <div id="root"></div>
 <script>
