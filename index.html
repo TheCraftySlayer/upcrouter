@@ -8864,13 +8864,17 @@ function BerncoRouteCategories({ primaryGroups, revisitGroups, primaryDay, lastC
     ] });
 }
 // Link intake: "#upcs=<UPC>,<UPC>" (for example from the A.C.E.S. UPC_Router_Link tool)
-// fills the UPC box once startup restore has finished. The list is read once and removed
-// from the address bar so a refresh doesn't re-import it. Nothing is looked up until staff
-// press Build route, so the public-services consent step and the "Replace the active
-// route?" prompt work as usual. The hash never leaves the browser, so UPC lists don't
+// fills the UPC box once startup restore has finished, then builds the route (see BerncoLinkBuild).
+// The list is read once and removed from the address bar so a refresh doesn't re-import it.
+// A link never grants consent for public map and routing services by itself, and never
+// replaces an active route. The hash never leaves the browser, so UPC lists don't
 // reach the web server's logs.
 const BerncoLinkedUpcLimit = 150;
 let BerncoLinkedUpcsTaken = false;
+// After the box is filled, a link also builds the route: right away when public route
+// services are already allowed this session, otherwise after one confirm that allows them.
+// It never builds over an active route. States: fill -> ask -> consented -> done (null).
+let BerncoLinkBuild = null;
 function BerncoTakeLinkedUpcs() {
     if (BerncoLinkedUpcsTaken) return [];
     BerncoLinkedUpcsTaken = true;
@@ -8967,12 +8971,35 @@ function T_() {
             Re({ message: `This link's ${count} were not loaded because a legacy saved route is waiting to be rebuilt. Rebuild or discard it, then open the link again.`, type: `warning` });
             return;
         }
-        t(linked.join(`\n`));
-        Re({ message: i.length
-                ? `Opened from a link with ${count}. They're in the UPC box; your saved ${i.length}-property route stays open until you press Build route.`
-                : `Opened from a link with ${count}. Review them, then press Build route.`, type: `info` });
-        window.setTimeout(() => document.getElementById(`upc-input`)?.focus(), 0);
-    }, [$e]), (0, _.useEffect)(() => { if (!$e)
+        const text = linked.join(`\n`);
+        t(text);
+        if (i.length) {
+            Re({ message: `Opened from a link with ${count}. They're in the UPC box; your saved ${i.length}-property route stays open until you press Build route.`, type: `info` });
+            window.setTimeout(() => document.getElementById(`upc-input`)?.focus(), 0);
+            return;
+        }
+        BerncoLinkBuild = { text, count, state: `fill` };
+        Re({ message: `Opened from a link with ${count}.`, type: `info` });
+    }, [$e]), (0, _.useEffect)(() => {
+        // Runs after the box holds the linked UPCs, so Build route sees them, and again when
+        // consent changes, so the build uses public routing once it's allowed.
+        const link = BerncoLinkBuild;
+        if (!$e || !link || e !== link.text) return;
+        if (link.state === `fill`) {
+            if (T) {
+                BerncoLinkBuild = null;
+                void Pt();
+                return;
+            }
+            link.state = `ask`;
+            kt(`Build a route for ${link.count}?`, `Each parcel is looked up in Bernalillo County's public GIS. To show the map and order stops by drive time, OpenStreetMap receives basemap requests and the public OSRM service receives the parcel coordinates for this browser session. Cancel keeps the UPCs in the box without building.`, `Allow and build route`, !1, () => { link.state = `consented`; $t(!0); });
+            return;
+        }
+        if (link.state === `consented` && T) {
+            BerncoLinkBuild = null;
+            void Pt();
+        }
+    }, [$e, e, T]), (0, _.useEffect)(() => { if (!$e)
         return; let e = window.setTimeout(() => { if (!i.length) {
         if (ut.current) {
             qe(`Legacy backup preserved. Rebuild the listed UPCs to create a GIS-revalidated route.`);
