@@ -23,4 +23,10 @@ If links ever open at the countywide view again, select any parcel on the Assess
 
 ## Opening the planner from a link
 
-A link like `https://thecraftyslayer.github.io/upcrouter/#upcs=<UPC>,<UPC>` opens the planner with those UPCs in the UPC box. The A.C.E.S. `UPC_Router_Link` tool builds these links. The list is read once after any saved route has loaded, then removed from the address bar so a refresh doesn't re-import it. Nothing is looked up until staff press Build route, so the consent step and the "Replace the active route?" prompt still apply. The list rides in the `#` part of the address, which browsers never send to the web server. Links carry at most 150 UPCs.
+A link like `https://thecraftyslayer.github.io/upcrouter/#upcs=<UPC>,<UPC>` opens the planner and builds the route for those UPCs. The A.C.E.S. `UPC_Router_Link` tool builds these links.
+
+- If public map and routing services are already allowed in this browser session, the route builds right away, ordered by drive time, with the map showing.
+- If they aren't, one dialog explains what OpenStreetMap and OSRM receive and offers **Allow and build route**. Cancel leaves the UPCs in the box without looking anything up. A link never grants that consent by itself.
+- If a saved route is open, the link only fills the UPC box. Build route then asks before replacing the active route.
+
+The list is read once after any saved route has loaded, then removed from the address bar so a refresh doesn't re-import it. It rides in the `#` part of the address, which browsers never send to the web server. Links carry at most 150 UPCs.
